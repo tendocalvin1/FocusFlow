@@ -1,0 +1,10 @@
+Django
+djangorestframework
+psycopg[binary]
+djangorestframework-simplejwt
+djangorestframework-simplejwt[crypto]
+django-cors-headers
+python-decouple
+drf-spectacular
+black
+isort

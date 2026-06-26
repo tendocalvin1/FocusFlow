@@ -1,0 +1,68 @@
+# ===========================================
+# Python
+# ===========================================
+__pycache__/
+*.py[cod]
+*$py.class
+
+venv/
+env/
+.venv/
+
+
+.env
+.env.*
+
+
+# Django
+
+*.log
+db.sqlite3
+media/
+staticfiles/
+
+
+# VS Code
+
+.vscode/
+
+
+# PyCharm
+
+.idea/
+
+=
+# macOS
+
+.DS_Store
+
+
+Thumbs.db
+Desktop.ini
+
+
+# Testing
+
+.coverage
+htmlcov/
+.pytest_cache/
+
+
+# Ruff / Black / Mypy
+
+.ruff_cache/
+.mypy_cache/
+
+
+# Build files
+
+build/
+dist/
+*.egg-info/
+
+# ===========================================
+# Node (when you add React)
+# ===========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
