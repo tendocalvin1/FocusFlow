@@ -21,6 +21,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView)
 
+# url patterns are used to show the different end points for the focusflow app
+
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("productivity.urls")),
