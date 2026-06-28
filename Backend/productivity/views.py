@@ -1,5 +1,6 @@
 from django.shortcuts import render
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
 from .serialisers import *
@@ -11,9 +12,10 @@ from datetime import date
 
 # APIs for goals
 @api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
 def goals_view(request):
     if request.method == "GET":
-        users = Goal.objects.all()
+        users = Goal.objects.filter(user= request.user)
         serializer = GoalSerializer(users, many= True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -58,7 +60,7 @@ def goals_detail_view(request, pk):
 def tasks_view(request):
 
     if request.method == "GET":
-        tasks = Task.objects.all()
+        tasks = Task.objects.filter(task = request.task)
         serializer = TaskSerializer(tasks,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
     serializer = TaskSerializer(data=request.data)
@@ -98,7 +100,7 @@ def task_detail_view(request, pk):
 @api_view(["GET", "POST"])
 def focus_sessions_view(request):
     if request.method == "GET":
-        sessions = FocusSession.objects.all()
+        sessions = FocusSession.objects.filter(session = request.session)
         serializer = FocusSessionSerializer(sessions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -139,7 +141,7 @@ def focus_session_detail_view(request, pk):
 # APIs for streaks [using the http method: GET]
 @api_view(["GET"])
 def streaks_view(request):
-    streaks = Streak.objects.all()
+    streaks = Streak.objects.filter(streak = request.streak)
     serializer = StreakSerializer(streaks,many=True)
     return Response(serializer.data,status=status.HTTP_200_OK)
 
