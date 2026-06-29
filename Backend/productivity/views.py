@@ -144,49 +144,31 @@ def focus_session_detail_view(request, pk):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def streaks_view(request):
-
     user = request.user
-
-    # Get or create the user's streak
     streak, created = Streak.objects.get_or_create(user=user)
-
     today = timezone.localdate()
     yesterday = today - timedelta(days=1)
 
-    # Prevent evaluating the same day twice
     if streak.last_evaluated_date == yesterday:
         serializer = StreakSerializer(streak)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    yesterday_goals = Goal.objects.filter(user=user,goal_date=yesterday)
 
-    # Retrieve all goals scheduled for yesterday
-    yesterday_goals = Goal.objects.filter(
-        user=user,
-        goal_date=yesterday
-    )
-
-    # Only evaluate if goals actually existed
     if yesterday_goals.exists():
+        all_completed = not yesterday_goals.filter(completed=False).exists()
 
-        all_completed = not yesterday_goals.filter(
-            completed=False
-        ).exists()
+    if all_completed:
+        streak.current_streak += 1
+    if streak.current_streak > streak.longest_streak:
+        streak.longest_streak = streak.current_streak
 
-        if all_completed:
-
-            streak.current_streak += 1
-
-            if streak.current_streak > streak.longest_streak:
-                streak.longest_streak = streak.current_streak
-
-        else:
-            streak.current_streak = 0
+    else:
+        streak.current_streak = 0
 
     # Mark yesterday as evaluated
     streak.last_evaluated_date = yesterday
     streak.save()
-
     serializer = StreakSerializer(streak)
-
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 
