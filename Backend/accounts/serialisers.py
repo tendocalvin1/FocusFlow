@@ -3,11 +3,11 @@ from rest_framework import serializers
 
 # register serializer
 class RegisterSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
     class Meta:
         model = User
         fields = ["username", "first_name", "last_name", "email", "password"]
         
-    
     def create(self, validated_data):
         user = User.objects.create_user(
             username = validated_data["username"],
@@ -18,23 +18,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         )
         return user
     
+    def validate_email(self, value):
+        if User.objects.filter(email= value).exists():
+            raise serializers.ValidationError("A user with this email already exists")
+        return value
+        
+    
 # Profile serializer
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
+class UserSerializer(serializers.Serializer):
         model = User
         fields = ["id", "username", "first_name", "last_name", "email"]
         
 # Password Change Serializer
-class ChangePasswordSerializer(serializers.ModelSerializer):
-    old_password = serializers.CharField()
-    new_password = serializers.CharField()
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True)
     
 
-# Forgot Password Serializer 
-class ForgotPasswordSerializer(serializers.ModelSerializer):
-    email = serializers.EmailField()  
+# # Forgot Password Serializer 
+# class ForgotPasswordSerializer(serializers.ModelSerializer):
+#     email = serializers.EmailField()  
     
-# Reset Password Serializer
-class ResetPasswordSerializer(serializers.ModelSerializer):
-    token = serializers.CharField()
-    password = serializers.CharField()
+# # Reset Password Serializer
+# class ResetPasswordSerializer(serializers.ModelSerializer):
+#     token = serializers.CharField()
+#     password = serializers.CharField()
