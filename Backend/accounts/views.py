@@ -8,3 +8,6 @@ from .serialisers import *
 
 # Create your views here.
 
+# register_view
+@api_view(["POST"])
+
