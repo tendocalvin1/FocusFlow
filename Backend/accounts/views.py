@@ -1,4 +1,3 @@
-from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
@@ -7,19 +6,23 @@ from .serialisers import *
 
 
 # Create your views here.
-
-# Register a new user
+# These are the end points for the authentication system for performing basic tasks
+"""
+    Register a new user account.
+"""
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_view(request):
-    if request.method == "POST":
         serializer = RegisterSerializer(data = request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-# checking the profile of a user
+
+"""
+    Retrieve the authenticated user's profile
+"""
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
@@ -27,21 +30,32 @@ def profile_view(request):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
         
-# changing the password of the user
+
+"""
+    changing the password of the user
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
-    serializer = ChangePasswordSerializer(request.user.set_password())
+    serializer = ChangePasswordSerializer(data = request.data)
     if serializer.is_valid():
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user = request.user
+        
+    # verify the old password
+        if not user.check_password(serializer.validated_data["old_password"]):
+            return Response({"old_password" : ["Incorrect password"]}, status=status.HTTP_400_BAD_REQUEST)
+    # set the new password
+        user.set_password(serializer.validated_data["new_password"])
+        user.save()
+        return Response({"message" : "Password changed successfully"}, status=status.HTTP_200_OK)
+    
+    
 
-# A user logging out
+
+"""
+    A user logging out
+"""
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):
-        serializer = UserSerializer(data = request.data)
-        if serializer.is_valid():
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+        return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
