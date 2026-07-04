@@ -1,5 +1,6 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+# Serialisers help in converting raw data into json data
 
 # register serializer
 class RegisterSerializer(serializers.ModelSerializer):
