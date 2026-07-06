@@ -26,7 +26,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         
     
 # Profile serializer
-class UserSerializer(serializers.Serializer):
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
         model = User
         fields = ["id", "username", "first_name", "last_name", "email"]
         
@@ -40,6 +41,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 # class ForgotPasswordSerializer(serializers.ModelSerializer):
 #     email = serializers.EmailField()  
     
+
 # # Reset Password Serializer
 # class ResetPasswordSerializer(serializers.ModelSerializer):
 #     token = serializers.CharField()
