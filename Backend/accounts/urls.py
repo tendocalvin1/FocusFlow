@@ -16,8 +16,8 @@ urlpatterns = [
     path("api/auth/logout/",view=views.logout_view,name="logout"),
     
     # login
-    path("api/token/",TokenObtainPairView.as_view(),name="token-obtsin-pair"),
+    path("api/token/",TokenObtainPairView.as_view(),name="token-obtain-pair"),
     
     # refresh
-    path("api/token/logout/",TokenRefreshView.as_view,name="token_refresh")
+    path("api/token/logout/",TokenRefreshView.as_view(),name="token_refresh")
 ]
