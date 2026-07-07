@@ -6,7 +6,7 @@ from .serialisers import *
 
 
 # Create your views here.
-# These are the end points for the authentication system for performing basic tasks
+# These are the end points for the authentication system
 """
     Register a new user account.
 """
