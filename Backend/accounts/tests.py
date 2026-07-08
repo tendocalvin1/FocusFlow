@@ -129,3 +129,45 @@ class LoginTests(APITestCase):
         response = self.client.post(reverse("token_obtain_pair"), {}, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         
+        
+        
+# Profile Tests using APITestCase
+class ProfileTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="tendo",
+            first_name="Tendo",
+            last_name="Calvin",
+            email="tendo@gmail.com",
+            password="password123!"
+        )
+        
+        
+# Test 1 — Authenticated user can retrieve their profile
+    def test_authenticated_user_can_view_profile(self):
+        self.client.force_authenticate(user= self.user)
+        response = self.client.post(reverse("profile"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"],"tendo")
+        self.assertEqual(response.data["email"],"tendo@gmail.com")
+        self.assertEqual(response.data["first_name"],"Tendo")
+        self.assertEqual(response.data["last_name"],"Calvin")
+        
+
+# Test 2 — Anonymous users cannot access the endpoint
+    def test_unauthenticated_user_cannot_view_profile(self):
+        response = self.client.get(reverse("profile"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+# Test 3 — The endpoint returns the logged-in user's data
+    def test_profile_returns_authenticated_user(self):
+        arthur = User.objects.create_user(
+            username="arthur",
+            email="arthur@gmail.com",
+            password="password123!"
+        )
+        self.client.force_authenticate(user=arthur)
+        response = self.client.get(reverse("profile"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "arthur")
+        self.assertNotEqual(response.data["username"], "Tendo")
