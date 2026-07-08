@@ -146,7 +146,7 @@ class ProfileTests(APITestCase):
 # Test 1 — Authenticated user can retrieve their profile
     def test_authenticated_user_can_view_profile(self):
         self.client.force_authenticate(user= self.user)
-        response = self.client.post(reverse("profile"))
+        response = self.client.get(reverse("profile"))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"],"tendo")
         self.assertEqual(response.data["email"],"tendo@gmail.com")
@@ -171,3 +171,87 @@ class ProfileTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["username"], "arthur")
         self.assertNotEqual(response.data["username"], "Tendo")
+        
+        
+# Change Password Test Suite
+class ChangePasswordTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username = "tendo",
+            email="tendo@gmail.com",
+            password="tendo1234!"
+        )
+        
+        self.client.force_authenticate(user=self.user)
+        
+# Test 1 — Successful Password Change
+    def test_user_can_change_password(self):
+        data = {
+            "old_password" : "tendo1234!",
+            "new_password" : "newtendo1234!"
+        }
+        
+        response = self.client.post(reverse("change-password"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newtendo1234!"))
+        
+# Test 2 — Wrong Old Password
+    def test_change_password_fails_with_wrong_old_password(self):
+        data = {
+        "old_password": "wrongpassword",
+        "new_password": "tendo1234!"
+        }
+        response = self.client.post(reverse("change-password"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newtendo1234!"))
+        
+# Test 3 — Missing Old Password
+    def test_change_password_requires_old_new_password(self):
+        data = {
+        "new_password": "newtendo1234!"
+    }
+        response = self.client.post(reverse("change-password"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("old_password", response.data)
+        
+# Test 4 — Missing New Password
+    def test_change_password_requires_new_password(self):
+        data = {
+            "old_password" : "tendo1234!"
+        }
+        response = self.client.post(reverse("change-password"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("new_password", response.data)
+        
+# Test 5 — Login Works with the New Password
+    def test_can_login_with_new_password(self):
+        response = self.client.post(reverse("change-password"), {"old_password" : "tendo1234!",
+            "new_password" : "newtendo1234!"}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.client.force_authenticate(user=None)
+        login = self.client.post(reverse("token_obtain_pair"),{
+            "username": "tendo",
+            "password": "newtendo1234!"
+        },
+        format="json"
+    )
+
+        self.assertEqual(login.status_code,status.HTTP_200_OK)
+        self.assertIn("access", login.data)
+        
+
+# Test 6 — Old Password No Longer Works
+    def test_old_password_no_longer_works(self):
+        self.client.post(reverse("change-password"),
+        {
+            "old_password": "password123!",
+            "new_password": "newpassword456!"
+        },
+        format="json"
+    )
+
+        self.client.force_authenticate(user=None)
+        response = self.client.post(reverse("token_obtain_pair"),{"username": "tendo","password": "password123!"},format="json")
+        self.assertEqual(response.status_code,status.HTTP_401_UNAUTHORIZED)
