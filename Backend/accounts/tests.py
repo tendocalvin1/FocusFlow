@@ -74,3 +74,58 @@ class RegisterTests(APITestCase):
         response = self.client.post(reverse("register"),data,format="json")
         self.assertEqual(response.status_code,status.HTTP_400_BAD_REQUEST)
         self.assertIn("email", response.data)
+        
+        
+
+# Login Tests using APIRestCase
+class LoginTests(APITestCase):
+    def setUp(self):
+     self.user = User.objects.create_user(
+         username="dave",
+         first_name = "Kinyonyi",
+         last_name = "David",
+         email="david@gmail.com",
+         password="dave1234!"
+     )
+     
+# Test 1 — Successful Login
+
+    def test_user_can_login(self):
+        data = {
+            "username" : "dave",
+            "password" : "dave1234!"
+        }
+        
+        response = self.client.post(reverse("token_obtain_pair"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+        
+# Test 2 — Wrong Password
+
+    def test_login_fails_with_wrong_password(self):
+        data = {
+            "username" : "dave",
+            "password" : "password"
+        }
+        
+        response = self.client.post(reverse("token_obtain_pair"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        
+# Test 3 — Unknown Username
+    def test_login_fails_with_unknown_username(self):
+        data = {
+            "username" : "username",
+            "password" : "dave1234!"
+        }
+        response = self.client.post(reverse("token_obtain_pair"), data, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+        
+# Test 4 — Empty Request
+
+    def test_login_requires_credentials(self):
+        response = self.client.post(reverse("token_obtain_pair"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
