@@ -221,7 +221,7 @@ class ChangePasswordTests(APITestCase):
         data = {
             "old_password" : "tendo1234!"
         }
-        response = self.client.put(reverse("change-password"), data, format="json")
+        response = self.client.post(reverse("change-password"), data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("new_password", response.data)
         

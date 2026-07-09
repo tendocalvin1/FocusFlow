@@ -48,6 +48,9 @@ def change_password_view(request):
         user.set_password(serializer.validated_data["new_password"])
         user.save()
         return Response({"message" : "Password changed successfully"}, status=status.HTTP_200_OK)
+    # handle serializer validation errors
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
     
     
 
