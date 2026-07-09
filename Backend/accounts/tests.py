@@ -200,12 +200,12 @@ class ChangePasswordTests(APITestCase):
     def test_change_password_fails_with_wrong_old_password(self):
         data = {
         "old_password": "wrongpassword",
-        "new_password": "tendo1234!"
+        "new_password": "newtendo1234!"
         }
         response = self.client.post(reverse("change-password"), data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.user.refresh_from_db()
-        self.assertTrue(self.user.check_password("newtendo1234!"))
+        self.assertFalse(self.user.check_password("newtendo1234!"))
         
 # Test 3 — Missing Old Password
     def test_change_password_requires_old_new_password(self):
@@ -221,7 +221,7 @@ class ChangePasswordTests(APITestCase):
         data = {
             "old_password" : "tendo1234!"
         }
-        response = self.client.post(reverse("change-password"), data, format="json")
+        response = self.client.put(reverse("change-password"), data, format="json")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("new_password", response.data)
         
