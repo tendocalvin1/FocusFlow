@@ -6,6 +6,7 @@ from rest_framework.test import APITestCase
 from rest_framework.authtoken.models import Token
 from  .models import Goal, Task, FocusSession, Streak
 from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer, StreakSerializer
+from rest_framework.authentication import SessionAuthentication, BaseAuthentication
 
 # Create your tests here.
 
