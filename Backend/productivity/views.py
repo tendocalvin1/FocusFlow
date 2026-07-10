@@ -1,11 +1,11 @@
-from django.shortcuts import render
+
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
-from .serialisers import *
-from .models import *
-from datetime import date, timedelta
+from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer, StreakSerializer
+from .models import Goal,Task,FocusSession,Streak
+from datetime import  timedelta
 from django.utils import timezone
 
 # Create your views here.
@@ -16,13 +16,13 @@ from django.utils import timezone
 @permission_classes([IsAuthenticated])
 def goals_view(request):
     if request.method == "GET":
-        users = Goal.objects.filter(user= request.user)
-        serializer = GoalSerializer(users, many= True)
+        goals = Goal.objects.filter(user= request.user)
+        serializer = GoalSerializer(goals, many= True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
     else:
         data = request.data
-        serializer = GoalSerializer(data = data)
+        serializer = GoalSerializer(data = request.data)
         if serializer.is_valid():
             serializer.save(user = request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -35,8 +35,8 @@ def goals_view(request):
 def goals_detail_view(request, pk):
     try:
         goal = Goal.objects.get(pk = pk, user = request.user)
-    except Goal.DoesNotExist as e:
-        return Response({"msg": f"Error {e}"}, status= status.HTTP_404_NOT_FOUND)
+    except Goal.DoesNotExist :
+        return Response({"detail":"Goal not found"}, status= status.HTTP_404_NOT_FOUND)
     
     
     if request.method == "GET":
@@ -47,7 +47,7 @@ def goals_detail_view(request, pk):
         serialiser = GoalSerializer(goal, data = request.data, partial = True)
         if serialiser.is_valid():
             serialiser.save()
-            return Response(serialiser.data, status=status.HTTP_202_ACCEPTED)
+            return Response(serialiser.data, status=status.HTTP_200_OK)
         return Response(serialiser.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
@@ -66,17 +66,30 @@ def tasks_view(request):
         tasks = Task.objects.filter(goal__user = request.user)
         serializer = TaskSerializer(tasks,many=True)
         return Response(serializer.data,status=status.HTTP_200_OK)
+    
+
+    goal_id = request.data.get("goal")
+
+    if not goal_id:
+        return Response({"goal": ["This field is required."]},status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        goal = Goal.objects.get(pk=goal_id,user=request.user)
+
+    except Goal.DoesNotExist:
+        return Response({"goal": ["Goal not found."]},status=status.HTTP_404_NOT_FOUND)
+
     serializer = TaskSerializer(data=request.data)
 
     if serializer.is_valid():
-        serializer.save()
+        serializer.save(goal=goal)
         return Response(serializer.data,status=status.HTTP_201_CREATED)
-
     return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 
 @api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
 def task_detail_view(request, pk):
     try:
         task = Task.objects.get(pk=pk, goal__user = request.user)
@@ -92,9 +105,9 @@ def task_detail_view(request, pk):
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             
-    else :
-        request.method == "DELETE"
+    elif request.method == "DELETE":
         task.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -113,10 +126,24 @@ def focus_sessions_view(request):
     elif request.method == "POST":
         serializer = FocusSessionSerializer(data=request.data)
 
+        # if serializer.is_valid():
+        #     serializer.save(user=request.user)
+        #     return Response(serializer.data, status=status.HTTP_201_CREATED)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        task_id = request.data.get("task")
+
+        try:
+            task = Task.objects.get(pk=task_id,goal__user=request.user)
+        except Task.DoesNotExist:
+            return Response({"task": ["Task not found."]},status=status.HTTP_404_NOT_FOUND)
+
+        serializer = FocusSessionSerializer(data=request.data)
+
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            serializer.save(user=request.user,task=task)
+            return Response(serializer.data,status=status.HTTP_201_CREATED)
+    return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(["GET", "PUT", "DELETE"])
@@ -165,11 +192,13 @@ def streaks_view(request):
 
     if all_completed:
         streak.current_streak += 1
-    if streak.current_streak > streak.longest_streak:
-        streak.longest_streak = streak.current_streak
 
+        if streak.current_streak > streak.longest_streak:
+            streak.longest_streak = streak.current_streak
     else:
         streak.current_streak = 0
+
+    
 
     # Mark yesterday as evaluated
     streak.last_evaluated_date = yesterday
