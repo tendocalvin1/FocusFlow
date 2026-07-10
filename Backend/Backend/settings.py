@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'productivity',
     'rest_framework',
     'rest_framework_simplejwt',
-    'accounts'
+    'accounts',
+    'rest_framework.authtoken'
 ]
 
 MIDDLEWARE = [
