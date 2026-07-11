@@ -9,7 +9,7 @@ from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer,
 from rest_framework.authentication import SessionAuthentication, BaseAuthentication
 
 # Create your tests here.
-
+# unit tests for the productivity application
 # building a test class
 class GoalAPITestCase(APITestCase):
     def setUp(self):
