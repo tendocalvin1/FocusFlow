@@ -10,7 +10,8 @@ from rest_framework.authentication import SessionAuthentication, BaseAuthenticat
 
 # Create your tests here.
 # unit tests for the productivity application
-# building a test class
+# building a test class for the goal API 
+# test cases for the goal API for focusflow
 class GoalAPITestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
