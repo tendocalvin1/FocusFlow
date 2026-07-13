@@ -3,6 +3,7 @@ from django.contrib.auth.models import User
 
 
 # Create your models here.
+# models are the databases that are used to create the different tables for the focus flow system
 class Goal(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE,related_name="goals")
     title = models.CharField(max_length=255)
