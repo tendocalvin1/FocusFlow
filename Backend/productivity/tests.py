@@ -7,11 +7,17 @@ from rest_framework.authtoken.models import Token
 from  .models import Goal, Task, FocusSession, Streak
 from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer, StreakSerializer
 from rest_framework.authentication import SessionAuthentication, BaseAuthentication
+from rest_framework.authtoken import views
+from django.urls import path
 
 # Create your tests here.
 # unit tests for the productivity application
 # building a test class for the goal API 
 # test cases for the goal API for focusflow
+
+urlpatterns = [
+    path('api-token-auth/', views.obtain_auth_token)
+]
 class GoalAPITestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
