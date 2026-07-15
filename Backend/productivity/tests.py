@@ -214,3 +214,69 @@ class TaskAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Task.objects.count(), 0)
         
+
+# Testing FocusSessions
+
+class FocusSessionAPITestCase(APITestCase):
+
+    def setUp(self):
+
+        # User
+        self.user = User.objects.create_user(username="tendo",password="calvin1234")
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION="Token " + self.token.key)
+
+        # Goal
+        self.goal = Goal.objects.create(
+            user=self.user,
+            title="Backend Engineer",
+            description="Learn DRF",
+            goal_date=date.today()
+        )
+
+        # Task
+        self.task = Task.objects.create(
+            goal=self.goal,
+            title="Write Tests",
+            description="Testing APIs",
+            priority="HIGH",
+            completed=False
+        )
+
+        # Focus Session
+        self.focus_session = FocusSession.objects.create(
+            user=self.user,
+            task=self.task,
+            duration=25,
+            completed=False
+        )
+
+        # Second user
+        self.other_user = User.objects.create_user(
+            username="john",
+            password="password123"
+        )
+
+        self.other_goal = Goal.objects.create(
+            user=self.other_user,
+            title="Private Goal",
+            description="Private",
+            goal_date=date.today()
+        )
+
+        self.other_task = Task.objects.create(
+            goal=self.other_goal,
+            title="Private Task",
+            description="Not yours",
+            priority="LOW",
+            completed=False
+        )
+
+    def test_get_all_focus_sessions(self):
+        FocusSession.objects.create(user=self.user,task=self.task,completed=False)
+        response = self.client.get(reverse("focus-sessions-view"))
+        print(response.status_code)
+        print(response.data)
+        # self.assertEqual(response.status_code, status.HTTP_200_OK)
+        # self.assertEqual(len(response.data), 1)
+        
