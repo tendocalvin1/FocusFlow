@@ -69,7 +69,148 @@ class GoalAPITestCase(APITestCase):
             'goal_date' : str(date.today()),
             'completed' : False
         }
-        
         response = self.client.post(reverse('goals-view'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('title', response.data)
+        
+        
+
+# Task Tests [Tasks belong to a particular goal]
+class TaskAPITestCase(APITestCase):
+    def setUp(self):
+        # user 1
+        self.user = User.objects.create_user(username="dave", password="dave456#")
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION = "Token " + self.token.key)
+        
+        # goal for user 1
+        self.goal = Goal.objects.create(
+            user =self.user,
+            title = "Become Software Engineer",
+            description = "Master system design and containerisation",
+            goal_date = date.today()
+        ) 
+        
+        # existing task
+        self.task = Task.objects.create(
+            goal = self.goal,
+            title = "Learn Backend engineering",
+            description = "Test end points",
+            priority = "medium",
+            completed = True
+        )
+        
+        
+        
+        # second user
+        self.other_user = User.objects.create(
+            username = "john",
+            password = "johndave123"
+        )
+        
+        # goal belonging to the second user
+        self.other_goal = Goal.objects.create(
+            user = self.other_user,
+            title = 'private goal',
+            description = "Not for everyone",
+            # priority = "high",
+            # completed = True,
+            goal_date = date.today()
+            
+        )
+        
+        
+    
+    # Test 1 : testing to get all tasks owned by the user
+    def test_get_all_tasks(self):
+        response = self.client.get(reverse("tasks-view"))
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        
+
+# test 2 : Testing on authentication
+    def test_tasks_require_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse('tasks-view'))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+
+# test 3 : creating tasks
+    def test_create_task(self):
+        data = {
+            "goal" : self.goal.id,
+            "title" : "learn about Artificial Intelligence",
+            "description" : "RAG and MCP",
+            "priority" : "HIGH",
+            "completed" : True
+        }    
+        response = self.client.post(reverse('tasks-view'), data, format='json')
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Task.objects.count(), 2)
+        self.assertEqual(response.data["title"], "learn about Artificial Intelligence")
+        
+        
+# test 4 : creating tasks without goals
+    def test_create_task_without_goal(self):
+        data = {
+            "title": "No goal",
+            "description" : "No description",
+            "priority" : "HIGH",
+            "completed": False
+        }
+        response = self.client.post(reverse('tasks-view'), data, format='json')
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        
+
+    # Test 5
+    
+    def test_cannot_create_task_for_another_users_goal(self):
+
+        data = {
+            "goal": self.other_goal.id,
+            "title": "Hack",
+            "description": "Should fail",
+            "priority": "HIGH",
+            "completed": False
+        }
+        response = self.client.post(reverse("tasks-view"),data,format="json")
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        
+        
+
+    # Test 6 : updating tasks of the user
+    
+    def test_update_task(self):
+
+        data = {
+            "title": "Updated Task"
+        }
+        response = self.client.put(reverse("task-detail-view",kwargs={"pk": self.task.id}),
+            data,
+            format="json"
+        )
+        self.task.refresh_from_db()
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(self.task.title, "Updated Task")
+        
+        
+
+    # Test 7: deleting of a task
+    
+    def test_delete_task(self):
+        response = self.client.delete(reverse("task-detail-view",kwargs={"pk": self.task.id}))
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Task.objects.count(), 0)
+        
