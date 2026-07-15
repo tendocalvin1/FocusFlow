@@ -36,3 +36,40 @@ class GoalAPITestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         
+        
+# Test 2: Unauthenticated user should fail.
+    def test_get_goals_requires_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse("goals-view"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+
+# Test 3: Create a goal.
+    def test_create_goal(self):
+        data = {
+            "user" : 1,
+            "title" : "Learn DevOps",
+            "description" : "Containerisation",
+            "goal_date": str(date.today()),
+            "completed" : False
+        }
+        
+        response = self.client.post(reverse('goals-view'), data, format='json')
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Goal.objects.count(), 2)
+        self.assertEqual(response.data['title'], "Learn DevOps")
+        
+        
+# Test 4: Missing title.
+    def test_create_goal_without_title(self):
+        data = {
+            'description' : 'Missing title',
+            'goal_date' : str(date.today()),
+            'completed' : False
+        }
+        
+        response = self.client.post(reverse('goals-view'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('title', response.data)
