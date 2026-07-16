@@ -7,11 +7,16 @@ from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer,
 from .models import Goal,Task,FocusSession,Streak
 from datetime import  timedelta
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 # Create your views here.
 
 
 # APIs for goals
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-all-goals",responses=GoalSerializer(many=True)),
+    post = extend_schema(summary="create-a-goal", request=GoalSerializer, responses={201: GoalSerializer})
+)
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def goals_view(request):
@@ -29,7 +34,11 @@ def goals_view(request):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-    
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-a-specific-goal",responses=GoalSerializer(many=True)),
+    put = extend_schema(summary="update-a-goal", request=GoalSerializer, responses={201: GoalSerializer}),
+    delete = extend_schema(summary="delete-a-goal", request=GoalSerializer, responses={404: GoalSerializer})
+)    
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def goals_detail_view(request, pk):
@@ -58,6 +67,10 @@ def goals_detail_view(request, pk):
     
     
 # APIs for tasks [using the http method: GET, POST, DELETE, PUT]
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-all-tasks",responses=TaskSerializer(many=True)),
+    post = extend_schema(summary="create-a-task", request=TaskSerializer, responses={201: TaskSerializer})
+)
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def tasks_view(request):
@@ -87,7 +100,11 @@ def tasks_view(request):
     return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
 
-
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-a-specific-task",responses=TaskSerializer(many=True)),
+    put = extend_schema(summary="update-a-task", request=TaskSerializer, responses={201: TaskSerializer}),
+    delete = extend_schema(summary="delete-a-task", request=TaskSerializer, responses={404: TaskSerializer})
+)
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def task_detail_view(request, pk):
@@ -114,6 +131,10 @@ def task_detail_view(request, pk):
 
 
 # APIs for focus session [using the http method: GET, POST]
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-all-focus-sessions",responses=FocusSessionSerializer(many=True)),
+    post = extend_schema(summary="create-a-focus-session", request=FocusSessionSerializer, responses={201: FocusSessionSerializer})
+)
 @api_view(["GET", "POST"])
 @permission_classes([IsAuthenticated])
 def focus_sessions_view(request):
@@ -145,7 +166,11 @@ def focus_sessions_view(request):
             return Response(serializer.data,status=status.HTTP_201_CREATED)
     return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 
-
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-a-specific-focus-session",responses=FocusSessionSerializer(many=True)),
+    put = extend_schema(summary="update-a-focus-session", request=FocusSessionSerializer, responses={201: FocusSessionSerializer}),
+    delete = extend_schema(summary="delete-a-focus-session", request=FocusSessionSerializer, responses={404: FocusSessionSerializer})
+)
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def focus_session_detail_view(request, pk):
@@ -172,7 +197,10 @@ def focus_session_detail_view(request, pk):
 
 
 # APIs for streaks [using the http method: GET]
-
+@extend_schema_view(
+    get=extend_schema(summary="Retrieve-all-streaks",responses=StreakSerializer(many=True))
+    
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def streaks_view(request):

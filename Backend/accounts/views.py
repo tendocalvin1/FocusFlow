@@ -3,6 +3,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
 from .serialisers import *
+from drf_spectacular.utils import extend_schema, extend_schema_view
 
 
 # Create your views here.
@@ -10,6 +11,9 @@ from .serialisers import *
 """
     Register a new user account.
 """
+@extend_schema_view(
+    post = extend_schema(summary="create-a-user", request=RegisterSerializer, responses={201: RegisterSerializer})
+)
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_view(request):
@@ -23,6 +27,9 @@ def register_view(request):
 """
     Retrieve the authenticated user's profile
 """
+@extend_schema_view(
+    get=extend_schema(summary="get-user-profile",responses=RegisterSerializer(many=True))
+)
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def profile_view(request):
@@ -34,6 +41,9 @@ def profile_view(request):
 """
     changing the password of the user
 """
+@extend_schema_view(
+    post=extend_schema(summary="change-password-of-user",responses=ChangePasswordSerializer(many=True))
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def change_password_view(request):
@@ -58,6 +68,7 @@ def change_password_view(request):
 """
     A user logging out
 """
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout_view(request):

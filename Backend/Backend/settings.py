@@ -147,7 +147,7 @@ REST_FRAMEWORK = {
 
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "FocusFlow API",
+    "TITLE": "FocusFlow ",
     "DESCRIPTION": "Backend API documentation for FocusFlow.",
     "VERSION": "1.0.0",
 }
