@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'accounts',
-    'rest_framework.authtoken'
+    'rest_framework.authtoken',
+    'drf_spectacular'
 ]
 
 MIDDLEWARE = [
@@ -139,5 +140,14 @@ REST_FRAMEWORK = {
         'rest_framework.renderers.MultiPartRenderer',
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.TemplateHTMLRenderer'
-    ]
+    ],
+    
+    'DEFAULT_SCHEMA_CLASS' : 'drf_spectacular.openapi.AutoSchema'
+}
+
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "FocusFlow API",
+    "DESCRIPTION": "Backend API documentation for FocusFlow.",
+    "VERSION": "1.0.0",
 }
