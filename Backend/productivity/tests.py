@@ -328,3 +328,14 @@ class FocusSessionAPITestCase(APITestCase):
         self.assertEqual(response.status_code,status.HTTP_404_NOT_FOUND)
         self.assertIn("task", response.data)
         
+# Test 5 :User cannot create a session for another user's task
+    def test_cannot_create_focus_session_for_other_users_task(self):
+        data = {
+        "task": self.other_task.id,
+        "completed": False
+        }
+        response = self.client.post(reverse("focus-sessions-view"),data,format="json")
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code,status.HTTP_404_NOT_FOUND)
+        
