@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, timedelta
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
@@ -220,7 +221,7 @@ class TaskAPITestCase(APITestCase):
 class FocusSessionAPITestCase(APITestCase):
 
     def setUp(self):
-
+        
         # User
         self.user = User.objects.create_user(username="tendo",password="calvin1234")
         self.token = Token.objects.create(user=self.user)
@@ -242,12 +243,14 @@ class FocusSessionAPITestCase(APITestCase):
             priority="HIGH",
             completed=False
         )
-
+        start_time = timezone.now()
+        end_time = start_time + timedelta(minutes=25)
         # Focus Session
         self.focus_session = FocusSession.objects.create(
             user=self.user,
             task=self.task,
-            duration=25,
+            start_time = start_time,
+            end_time = end_time,
             completed=False
         )
 
@@ -272,11 +275,56 @@ class FocusSessionAPITestCase(APITestCase):
             completed=False
         )
 
+# Test 1 : Authenticated user can retrieve their focus sessions    
     def test_get_all_focus_sessions(self):
-        FocusSession.objects.create(user=self.user,task=self.task,completed=False)
+        start_time = timezone.now()
+        end_time = start_time + timedelta(minutes=25)
+        FocusSession.objects.create(
+            user=self.user,
+            task=self.task,
+            start_time = start_time,
+            end_time = end_time,
+            completed=False)
         response = self.client.get(reverse("focus-sessions-view"))
-        print(response.status_code)
-        print(response.data)
-        # self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # self.assertEqual(len(response.data), 1)
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        
+        
+# Test 2 : Unauthenticated user cannot retrieve sessions
+    def test_get_focus_sessions_require_authentication(self):
+        self.client.credentials()
+        response = self.client.get(reverse('focus-sessions-view'))
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        
+
+# Test 3 : User can create a focus session
+    def test_create_focus_session(self):
+        start_time = timezone.now()
+        end_time = start_time + timedelta(minutes=25)
+        data = {
+        "user" : self.user.id,
+        "task": self.task.id,
+        "start_time" : start_time,
+        "end_time" : end_time, 
+        "completed": False
+    }
+
+        response = self.client.post(reverse("focus-sessions-view"),data,format="json")
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(FocusSession.objects.count(), 2)
+        
+        
+# Test 4: Creating a session without a task should fail
+    def test_create_focus_session_without_task(self):
+        response = self.client.post(reverse("focus-sessions-view"), format="json")
+        # print(response.status_code)
+        # print(response.data)
+        self.assertEqual(response.status_code,status.HTTP_404_NOT_FOUND)
+        self.assertIn("task", response.data)
         
