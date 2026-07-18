@@ -8,3 +8,14 @@ services:
 
     volumes:
       - .:/app
+
+  db:
+    image: postgres:17
+
+    environment:
+      POSTGRES_DB: focusflow_db
+      POSTGRES_USER: focusflow_user
+      POSTGRES_PASSWORD: focusflow_password
+
+    ports:
+      - "5432:5432"
