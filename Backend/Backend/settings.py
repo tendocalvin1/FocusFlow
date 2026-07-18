@@ -81,8 +81,12 @@ WSGI_APPLICATION = "Backend.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "focusflow_db",
+        "USER": "focusflow_user",
+        "PASSWORD": "focusflow_password",
+        "HOST": "db",
+        "PORT": "5432",
     }
 }
 
