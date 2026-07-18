@@ -1,7 +1,7 @@
 services:
   web:
     build: .
-    command: python manage.py runserver 0.0.0.0:8000
+    command: gunicorn Backend.wsgi:application --bind 0.0.0.0:8000
 
     ports:
       - "8000:8000"
@@ -9,13 +9,31 @@ services:
     volumes:
       - .:/app
 
+    env_file:
+      - .env
+
   db:
     image: postgres:17
-
+    
+    
     environment:
-      POSTGRES_DB: focusflow_db
-      POSTGRES_USER: focusflow_user
-      POSTGRES_PASSWORD: focusflow_password
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    
+    
 
     ports:
       - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U focusflow_user -d focusflow_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
