@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/wsgi/
 # This file helps in deployment as the wsgi file is one of the files connected to Docker and helps
 # in containerising the application
 
+# Docker helps in enabling the application run everywhere
 import os
 
 from django.core.wsgi import get_wsgi_application
