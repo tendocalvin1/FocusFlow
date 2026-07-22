@@ -1,32 +1,52 @@
-# use the official python image
+
+# Base Image
 FROM python:3.12-slim
 
-# Prevent python from writing .pyc file
-ENV PYTHONDONTWRITEBYTECODE=1
 
-# show python output immediately
+# Environment Variables
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Set the working directory
+
+# Working Directory
 WORKDIR /app
 
-# copy dependencies
+
+# Install System Packages
+RUN apt-get update && \
+    apt-get install -y \
+        gcc \
+        libpq-dev \
+        netcat-openbsd && \
+    rm -rf /var/lib/apt/lists/*
+
+
+# Install Python Dependencies
 COPY requirements.txt .
 
-# install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 
-# copy the rest of the project
+# Copy Project
 COPY . .
 
 
-# Expose Django's port
+# Make Entrypoint Executable
+RUN chmod +x entrypoint.sh
+
+
+# Create Non-Root User
+RUN addgroup --system app && \
+    adduser --system --ingroup app app
+
+RUN chown -R app:app /app
+
+USER app
+
+
+# Expose Gunicorn Port
 EXPOSE 8000
 
 
-# Start the django development server
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
-
-
-
+# Container Startup
+ENTRYPOINT ["./entrypoint.sh"]
