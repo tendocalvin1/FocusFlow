@@ -25,8 +25,9 @@ echo "Starting Gunicorn..."
 
 exec gunicorn Backend.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers=3 \
-    --timeout=120 \
-    --access-logfile=- \
-    --error-logfile=- \
-    --capture-output
+    --workers 3 \
+    --timeout 120 \
+    --access-logfile - \
+    --error-logfile - \
+    --capture-output \
+    --worker-tmp-dir /dev/shm
