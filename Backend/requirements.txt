@@ -10,3 +10,4 @@ black
 isort
 gunicorn
 whitenoise
+dj-database-url
