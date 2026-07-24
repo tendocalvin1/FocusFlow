@@ -6,15 +6,6 @@ echo "=================================="
 echo "Starting FocusFlow Backend..."
 echo "=================================="
 
-echo "Waiting for PostgreSQL..."
-
-until nc -z "$DB_HOST" "$DB_PORT"; do
-    echo "Database unavailable..."
-    sleep 2
-done
-
-echo "PostgreSQL is ready."
-
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
