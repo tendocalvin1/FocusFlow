@@ -22,11 +22,13 @@ from django.conf.urls.static import static
 from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshView)
 from rest_framework_simplejwt.views import TokenVerifyView
 from drf_spectacular.views import (SpectacularAPIView, SpectacularSwaggerView)
+from Backend.views import home
 
 # url patterns are used to show the different end points for the focusflow app
 # backend engineering using django
 
 urlpatterns = [
+    path("", home),
     path("admin/", admin.site.urls),
     path("", include("productivity.urls")),
     path("", include("accounts.urls")),
