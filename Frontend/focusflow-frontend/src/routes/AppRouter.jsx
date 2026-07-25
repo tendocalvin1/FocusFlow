@@ -7,6 +7,7 @@ import Focus from "../pages/Focus/Focus";
 import Analytics from "../pages/Analytics/Analytics";
 import Settings from "../pages/Settings/Settings";
 import Login from "../pages/Login/Login";
+import MainLayout from "../layouts/MainLayout";
 
 
 
@@ -17,7 +18,7 @@ export default function AppRoutes() {
 
                 <Route path="/login" element={<Login />} />
 
-                <Route element={<AppLayout />}>
+                <Route element={<MainLayout />}>
 
                     <Route path="/" element={<Dashboard />} />
 
