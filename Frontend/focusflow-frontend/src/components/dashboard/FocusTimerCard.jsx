@@ -1,54 +1,57 @@
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Timer, Play } from "lucide-react";
+import { Play, Pause, RotateCcw } from "lucide-react";
 
-function FocusTimerCard() {
+export default function FocusTimerCard() {
     return (
-        <Card className="rounded-2xl border-slate-200 shadow-sm">
+        <Card className="rounded-2xl shadow-sm">
 
-            <CardContent className="flex flex-col items-center justify-center p-8">
+            <CardHeader>
+                <CardTitle className="text-lg">
+                    Focus Session
+                </CardTitle>
+            </CardHeader>
 
-                <div className="mb-4 rounded-full bg-slate-100 p-4">
+            <CardContent>
 
-                    <Timer
-                        size={28}
-                        className="text-slate-700"
-                    />
+                <div className="flex flex-col items-center justify-center py-8">
+
+                    <p className="text-6xl font-bold tracking-tight">
+                        25:00
+                    </p>
+
+                    <p className="mt-2 text-sm text-slate-500">
+                        Pomodoro Session
+                    </p>
+
+                    <div className="mt-8 flex gap-3">
+
+                        <Button size="icon" className="rounded-xl">
+                            <Play size={18}/>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-xl"
+                        >
+                            <Pause size={18}/>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-xl"
+                        >
+                            <RotateCcw size={18}/>
+                        </Button>
+
+                    </div>
 
                 </div>
-
-                <h2 className="text-lg font-semibold">
-
-                    Focus Session
-
-                </h2>
-
-                <p className="mt-2 text-6xl font-bold tracking-tight">
-
-                    25:00
-
-                </p>
-
-                <p className="mt-3 text-sm text-slate-500">
-
-                    Ready to enter deep work?
-
-                </p>
-
-                <Button
-                    className="mt-8 w-full rounded-xl"
-                >
-
-                    <Play className="mr-2 h-4 w-4" />
-
-                    Start Focus Session
-
-                </Button>
 
             </CardContent>
 
         </Card>
     );
 }
-
-export default FocusTimerCard;

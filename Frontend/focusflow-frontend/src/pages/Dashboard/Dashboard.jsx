@@ -1,8 +1,11 @@
+import QuickActions from "../../components/dashboard/QuickActions";
+import FocusTimerCard from "../../components/dashboard/FocusTimerCard";
+import RecentSessionsCard from "../../components/dashboard/RecentSessionsCard";
+import TaskListCard from "../../components/dashboard/TaskListCard";
 import StatsGrid from "../../components/dashboard/StatsGrid";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import AnalyticsCard from "@/components/dashboard/AnalyticsCard";
 import GoalProgressCard from "@/components/dashboard/GoalProgressCard";
-import FocusTimerCard from "@/components/dashboard/FocusTimerCard";
 
 function Dashboard() {
     return (
@@ -20,13 +23,26 @@ function Dashboard() {
             {/* Second Row */}
 
            <div className="mt-8 grid gap-6 lg:grid-cols-2">
+                <TaskListCard />
 
                 <GoalProgressCard />
-
-                <FocusTimerCard />
+                
 
             </div> 
 
+            <div className="mt-6 grid gap-6 lg:grid-cols-2">
+
+                <FocusTimerCard />
+
+                <RecentSessionsCard />
+
+            </div>
+
+            <div className="mt-6">
+
+                <QuickActions />
+
+            </div>
 
             <div className="space-y-8">
 
