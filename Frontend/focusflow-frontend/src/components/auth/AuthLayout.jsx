@@ -1,5 +1,5 @@
 import { Sparkles, CheckCircle2 } from "lucide-react";
-import Logo from "@/components/layout/Logo";
+//import Logo from "@/components/layout/Logo";
 
 export default function AuthLayout({ children, title, subtitle }) {
   return (
