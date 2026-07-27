@@ -1,0 +1,71 @@
+export const initialGoals = [
+  {
+    id: 1,
+    title: "Launch FocusFlow SaaS v1.0",
+    description: "Complete frontend UI, integrate mock API layers, and conduct end-to-end responsiveness testing.",
+    category: "Work",
+    status: "in_progress", // 'in_progress' | 'completed' | 'on_hold'
+    progress: 75,
+    target_date: "2026-08-15",
+    color: "indigo",
+    sub_goals: [
+      { id: 101, title: "Design System & Component Architecture", completed: true },
+      { id: 102, title: "Dashboard & Core Modules Frontend", completed: true },
+      { id: 103, title: "Django REST API Specs & Integration", completed: false },
+      { id: 104, title: "Production Deployment & Monitoring", completed: false },
+    ],
+  },
+  {
+    id: 2,
+    title: "Master React 19 & Concurrent Rendering",
+    description: "Deep dive into React 19 Server Components, Actions, and useOptimistic hook patterns.",
+    category: "Learning",
+    status: "in_progress",
+    progress: 60,
+    target_date: "2026-09-01",
+    color: "emerald",
+    sub_goals: [
+      { id: 201, title: "Read React 19 official release notes", completed: true },
+      { id: 202, title: "Build custom async action hooks", completed: true },
+      { id: 203, title: "Benchmark performance gains", completed: false },
+    ],
+  },
+  {
+    id: 3,
+    title: "Run 10km Endurance Challenge",
+    description: "Maintain morning cardio routines and build stamina over 8 consecutive weeks.",
+    category: "Health",
+    status: "in_progress",
+    progress: 40,
+    target_date: "2026-10-10",
+    color: "amber",
+    sub_goals: [
+      { id: 301, title: "Week 1-2: 3km baseline runs", completed: true },
+      { id: 302, title: "Week 3-5: 5km tempo runs", completed: true },
+      { id: 303, title: "Week 6-8: 10km final run", completed: false },
+    ],
+  },
+  {
+    id: 4,
+    title: "Build Personal Design System",
+    description: "Construct a Tailwind v4 + Radix/shadcn component token set for scalable SaaS apps.",
+    category: "Personal",
+    status: "completed",
+    progress: 100,
+    target_date: "2026-07-20",
+    color: "purple",
+    sub_goals: [
+      { id: 401, title: "Define color tokens & typography", completed: true },
+      { id: 402, title: "Build button & input variants", completed: true },
+      { id: 403, title: "Publish npm component package", completed: true },
+    ],
+  },
+];
+
+export const goalsService = {
+  getGoals: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => resolve([...initialGoals]), 150);
+    });
+  },
+};
