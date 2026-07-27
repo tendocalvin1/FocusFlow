@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CalendarAlert, CheckCircle, Clock, AlertTriangle, ArrowRight } from "lucide-react";
+
+import {Calendar,CheckCircle,Clock,AlertTriangle,ArrowRight,} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,7 +49,7 @@ export default function UpcomingDeadlines() {
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div className="flex items-center space-x-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
-            <CalendarAlert className="h-4 w-4" />
+            <Calendar className="h-4 w-4" />
           </div>
           <div>
             <CardTitle className="text-base font-semibold text-slate-900 dark:text-slate-100">
