@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, User, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import AuthLayout from "@/components/auth/AuthLayout";
 import SocialAuthButtons from "@/components/auth/SocialAuthButtons";
@@ -9,11 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
-export default function Login() {
+export default function Register() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [email, setEmail] = useState("alex.morgan@focusflow.io");
-  const [password, setPassword] = useState("password123");
+  const { register } = useAuth();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -21,17 +22,23 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) {
-      setError("Please fill in all fields");
+
+    if (!name || !email || !password) {
+      setError("Please fill in all required fields.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
       return;
     }
 
     try {
       setLoading(true);
-      await login(email, password);
+      await register(name, email, password);
       navigate("/");
     } catch (err) {
-      setError("Invalid credentials. Please check your login details.");
+      setError("Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -39,8 +46,8 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Welcome back to FocusFlow"
-      subtitle="Enter your credentials to access your workspace"
+      title="Create your FocusFlow account"
+      subtitle="Start your 14-day free workspace trial"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
@@ -50,15 +57,33 @@ export default function Login() {
         )}
 
         <div className="space-y-1.5">
+          <Label htmlFor="name" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            Full name
+          </Label>
+          <div className="relative">
+            <User className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <Input
+              id="name"
+              type="text"
+              placeholder="Alex Morgan"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="pl-9 rounded-xl border-slate-200 focus-visible:ring-indigo-500 dark:border-slate-800"
+              required
+            />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="email" className="text-xs font-medium text-slate-700 dark:text-slate-300">
-            Email address
+            Work email
           </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               id="email"
               type="email"
-              placeholder="you@company.com"
+              placeholder="alex@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-9 rounded-xl border-slate-200 focus-visible:ring-indigo-500 dark:border-slate-800"
@@ -68,23 +93,15 @@ export default function Login() {
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password" className="text-xs font-medium text-slate-700 dark:text-slate-300">
-              Password
-            </Label>
-            <Link
-              to="/forgot-password"
-              className="text-xs font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400"
-            >
-              Forgot password?
-            </Link>
-          </div>
+          <Label htmlFor="password" className="text-xs font-medium text-slate-700 dark:text-slate-300">
+            Password
+          </Label>
           <div className="relative">
             <Lock className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
+              placeholder="At least 6 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-9 pr-9 rounded-xl border-slate-200 focus-visible:ring-indigo-500 dark:border-slate-800"
@@ -105,7 +122,7 @@ export default function Login() {
           disabled={loading}
           className="w-full gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 font-medium py-2.5"
         >
-          {loading ? "Signing in..." : "Sign in to Workspace"}
+          {loading ? "Creating account..." : "Create Account"}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </form>
@@ -116,7 +133,7 @@ export default function Login() {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-slate-50 px-2 text-slate-400 dark:bg-slate-950 dark:text-slate-500">
-            Or continue with
+            Or sign up with
           </span>
         </div>
       </div>
@@ -124,9 +141,9 @@ export default function Login() {
       <SocialAuthButtons />
 
       <p className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400">
-        Don't have an account?{" "}
-        <Link to="/register" className="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
-          Sign up for free
+        Already have an account?{" "}
+        <Link to="/login" className="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+          Sign in
         </Link>
       </p>
     </AuthLayout>

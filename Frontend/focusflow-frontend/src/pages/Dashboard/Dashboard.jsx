@@ -1,60 +1,54 @@
-import QuickActions from "../../components/dashboard/QuickActions";
-import FocusTimerCard from "../../components/dashboard/FocusTimerCard";
-import RecentSessionsCard from "../../components/dashboard/RecentSessionsCard";
-import TaskListCard from "../../components/dashboard/TaskListCard";
-import StatsGrid from "../../components/dashboard/StatsGrid";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
-import AnalyticsCard from "@/components/dashboard/AnalyticsCard";
+import StatsGrid from "@/components/dashboard/StatsGrid";
+import ProductivityInsights from "@/components/dashboard/ProductivityInsights";
+import WeeklyActivityChart from "@/components/dashboard/WeeklyActivityChart";
+import AchievementStreakCard from "@/components/dashboard/AchievementStreakCard";
+import UpcomingDeadlines from "@/components/dashboard/UpcomingDeadlines";
+import TaskListCard from "@/components/dashboard/TaskListCard";
 import GoalProgressCard from "@/components/dashboard/GoalProgressCard";
+import FocusTimerCard from "@/components/dashboard/FocusTimerCard";
+import RecentSessionsCard from "@/components/dashboard/RecentSessionsCard";
+import QuickActions from "@/components/dashboard/QuickActions";
+import TodaysGoals from "@/components/dashboard/TodaysGoals";
 
-function Dashboard() {
-    return (
-        <>
-            <DashboardHeader />
+export default function Dashboard() {
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
+      {/* Top Welcome Header */}
+      <DashboardHeader />
 
-            {/* Top Analytics Cards */}
+      {/* Primary KPI Stats Grid */}
+      <StatsGrid />
 
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+      {/* AI Productivity Insights */}
+      <ProductivityInsights />
 
-                {/* Your AnalyticsCard components */}
+      {/* Row 2: Weekly Activity Chart + Achievement & Streak Card */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <WeeklyActivityChart />
+        <AchievementStreakCard />
+      </div>
 
-            </div>
+      {/* Row 3: Today's Tasks + Goal Progress */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <TaskListCard />
+        <GoalProgressCard />
+      </div>
 
-            {/* Second Row */}
+      {/* Row 4: Focus Timer + Recent Focus Sessions */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <FocusTimerCard />
+        <RecentSessionsCard />
+      </div>
 
-           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-                <TaskListCard />
+      {/* Row 5: Upcoming Deadlines + Today's Goals */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <UpcomingDeadlines />
+        <TodaysGoals />
+      </div>
 
-                <GoalProgressCard />
-                
-
-            </div> 
-
-            <div className="mt-6 grid gap-6 lg:grid-cols-2">
-
-                <FocusTimerCard />
-
-                <RecentSessionsCard />
-
-            </div>
-
-            <div className="mt-6">
-
-                <QuickActions />
-
-            </div>
-
-            <div className="space-y-8">
-
-                <DashboardHeader />
-
-                <StatsGrid />
-
-    
-            </div>
-
-        </>
-    );
+      {/* Quick Action Dock */}
+      <QuickActions />
+    </div>
+  );
 }
-
-export default Dashboard;
