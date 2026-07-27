@@ -1,5 +1,6 @@
 import { Search, Bell } from "lucide-react";
-import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
+import { Avatar, AvatarFallback } from "../ui/avatar";
+// import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 // C:\Users\dell\Desktop\FocusFlow\Frontend\focusflow-frontend\src\components\ui\avatar.jsx
 
 function Navbar() {
