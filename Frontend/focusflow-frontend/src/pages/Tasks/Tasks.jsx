@@ -1,33 +1,60 @@
-import { useState } from "react";
-import { Plus, CheckSquare, LayoutGrid, List, Search, Filter } from "lucide-react";
-import { initialTasks } from "@/services/tasksService";
+import { useEffect, useMemo, useState } from "react";
+import { AlertCircle, CheckSquare, LayoutGrid, List, Plus, Search } from "lucide-react";
+import { tasksService } from "@/services/tasksService";
 import TaskKanbanBoard from "@/components/tasks/TaskKanbanBoard";
 import TaskListContainer from "@/components/tasks/TaskListContainer";
 import TaskModal from "@/components/tasks/TaskModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { taskPriorities, taskStatuses, taskTags } from "@/constants/taskConstants";
 
 export default function Tasks() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const [tasks, setTasks] = useState([]);
   const [viewMode, setViewMode] = useState("kanban"); // 'kanban' | 'list'
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState("All");
   const [selectedPriority, setSelectedPriority] = useState("All");
+  const [selectedStatus, setSelectedStatus] = useState("All");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [defaultStatus, setDefaultStatus] = useState("todo");
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const tags = ["All", "Frontend", "Backend", "Design", "DevOps"];
-  const priorities = ["All", "High", "Medium", "Low"];
+  useEffect(() => {
+    let isMounted = true;
 
-  const filteredTasks = tasks.filter((t) => {
-    const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTag = selectedTag === "All" || t.tag === selectedTag;
-    const matchesPriority = selectedPriority === "All" || t.priority === selectedPriority;
-    return matchesSearch && matchesTag && matchesPriority;
-  });
+    tasksService
+      .getTasks()
+      .then((data) => {
+        if (isMounted) setTasks(data);
+      })
+      .catch(() => {
+        if (isMounted) setError("Tasks could not be loaded from mock data.");
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      const normalizedSearch = searchQuery.toLowerCase();
+      const matchesSearch =
+        t.title.toLowerCase().includes(normalizedSearch) ||
+        t.description.toLowerCase().includes(normalizedSearch);
+      const matchesTag = selectedTag === "All" || t.tag === selectedTag;
+      const matchesPriority =
+        selectedPriority === "All" || t.priority === selectedPriority;
+      const matchesStatus = selectedStatus === "All" || t.status === selectedStatus;
+
+      return matchesSearch && matchesTag && matchesPriority && matchesStatus;
+    });
+  }, [searchQuery, selectedPriority, selectedStatus, selectedTag, tasks]);
 
   const handleSaveTask = (savedTask) => {
     if (taskToEdit) {
@@ -49,6 +76,17 @@ export default function Tasks() {
     );
   };
 
+  const handleStatusChange = (taskId, status) => {
+    setTasks((prev) =>
+      prev.map((task) => (task.id === taskId ? { ...task, status } : task))
+    );
+  };
+
+  const handleDeleteTask = (taskId) => {
+    setTasks((prev) => prev.filter((task) => task.id !== taskId));
+    setTaskToEdit(null);
+  };
+
   const handleOpenNewTask = (colStatus = "todo") => {
     setTaskToEdit(null);
     setDefaultStatus(colStatus);
@@ -58,6 +96,11 @@ export default function Tasks() {
   const handleSelectTaskToEdit = (task) => {
     setTaskToEdit(task);
     setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setTaskToEdit(null);
   };
 
   return (
@@ -115,7 +158,7 @@ export default function Tasks() {
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           {/* Tag Filter Pills */}
           <div className="flex items-center space-x-1">
-            {tags.map((t) => (
+            {taskTags.map((t) => (
               <button
                 key={t}
                 onClick={() => setSelectedTag(t)}
@@ -129,6 +172,31 @@ export default function Tasks() {
               </button>
             ))}
           </div>
+
+          <select
+            value={selectedPriority}
+            onChange={(event) => setSelectedPriority(event.target.value)}
+            className="h-8 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+          >
+            {taskPriorities.map((priority) => (
+              <option key={priority} value={priority}>
+                {priority === "All" ? "All priorities" : `${priority} priority`}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedStatus}
+            onChange={(event) => setSelectedStatus(event.target.value)}
+            className="h-8 rounded-xl border border-slate-200 bg-white px-3 text-xs font-medium text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+          >
+            <option value="All">All statuses</option>
+            {taskStatuses.map((status) => (
+              <option key={status.key} value={status.key}>
+                {status.title}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="relative w-full sm:w-64">
@@ -142,29 +210,62 @@ export default function Tasks() {
         </div>
       </div>
 
-      {/* Active View */}
-      {viewMode === "kanban" ? (
+      {error ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+          <AlertCircle className="h-5 w-5" />
+          {error}
+        </div>
+      ) : isLoading ? (
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <div
+              key={item}
+              className="h-80 animate-pulse rounded-2xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900"
+            />
+          ))}
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-10 text-center dark:border-slate-800 dark:bg-slate-900/60">
+          <CheckSquare className="mx-auto h-9 w-9 text-slate-300 dark:text-slate-600" />
+          <h2 className="mt-4 text-sm font-bold text-slate-900 dark:text-slate-100">
+            No tasks found
+          </h2>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
+            Clear a filter or create a task to keep the workflow moving.
+          </p>
+          <Button onClick={() => handleOpenNewTask("todo")} className="mt-5 rounded-xl">
+            <Plus className="h-4 w-4" />
+            New Task
+          </Button>
+        </div>
+      ) : viewMode === "kanban" ? (
         <TaskKanbanBoard
           tasks={filteredTasks}
           onSelectTask={handleSelectTaskToEdit}
           onAddTask={handleOpenNewTask}
+          onMoveTask={handleStatusChange}
         />
       ) : (
         <TaskListContainer
           tasks={filteredTasks}
           onSelectTask={handleSelectTaskToEdit}
           onToggleStatus={handleToggleStatus}
+          onStatusChange={handleStatusChange}
         />
       )}
 
       {/* Task Modal */}
-      <TaskModal
-        open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSaveTask={handleSaveTask}
-        taskToEdit={taskToEdit}
-        defaultStatus={defaultStatus}
-      />
+      {isModalOpen && (
+        <TaskModal
+          key={taskToEdit?.id || `new-${defaultStatus}`}
+          open={isModalOpen}
+          onClose={handleCloseModal}
+          onDeleteTask={handleDeleteTask}
+          onSaveTask={handleSaveTask}
+          taskToEdit={taskToEdit}
+          defaultStatus={defaultStatus}
+        />
+      )}
     </div>
   );
 }

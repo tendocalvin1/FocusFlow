@@ -7,39 +7,9 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import {categoryColors,priorityColors,statusColors,statusLabels} from "@/constants/goalConstants";
 
-const categoryColors = {
-  Work:
-    "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900",
 
-  Learning:
-    "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-900",
-
-  Health:
-    "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-900",
-
-  Personal:
-    "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/60 dark:text-purple-300 dark:border-purple-900",
-};
-
-const priorityColors = {
-  High:
-    "bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-300",
-
-  Medium:
-    "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-950/50 dark:text-yellow-300",
-
-  Low:
-    "bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-300",
-};
-
-const statusColors = {
-  active: "bg-blue-500",
-
-  completed: "bg-green-500",
-
-  planned: "bg-slate-400",
-};
 
 export default function GoalCard({ goal, onSelect }) {
   const completedSubGoals =
@@ -102,7 +72,7 @@ export default function GoalCard({ goal, onSelect }) {
 
             <span className="text-xs font-medium capitalize text-slate-500">
 
-              {goal.status.replace("_", " ")}
+              {statusLabels[goal.status]}
 
             </span>
 

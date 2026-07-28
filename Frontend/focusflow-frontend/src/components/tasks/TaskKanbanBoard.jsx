@@ -1,22 +1,21 @@
 import TaskCard from "./TaskCard";
 import { Plus } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { taskStatuses } from "@/constants/taskConstants";
 
 export default function TaskKanbanBoard({ tasks, onSelectTask, onAddTask, onMoveTask }) {
-  const columns = [
-    { key: "todo", title: "To Do", color: "bg-slate-500" },
-    { key: "in_progress", title: "In Progress", color: "bg-blue-500" },
-    { key: "in_review", title: "In Review", color: "bg-amber-500" },
-    { key: "done", title: "Done", color: "bg-emerald-500" },
-  ];
-
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4 items-start">
-      {columns.map((col) => {
+      {taskStatuses.map((col) => {
         const columnTasks = tasks.filter((t) => t.status === col.key);
         return (
           <div
             key={col.key}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              const taskId = Number(event.dataTransfer.getData("text/plain"));
+              if (taskId) onMoveTask(taskId, col.key);
+            }}
             className="flex flex-col rounded-2xl border border-slate-200/80 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-slate-900/40"
           >
             {/* Column Header */}

@@ -1,7 +1,8 @@
-import { CheckCircle2, Circle, Clock, Flame, Tag } from "lucide-react";
+import { CheckCircle2, Circle, Flame } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { priorityBadgeClasses, tagBadgeClasses, taskStatuses } from "@/constants/taskConstants";
 
-export default function TaskListContainer({ tasks, onSelectTask, onToggleStatus }) {
+export default function TaskListContainer({ tasks, onSelectTask, onToggleStatus, onStatusChange }) {
   return (
     <div className="rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm overflow-hidden dark:border-slate-800 dark:bg-slate-900/90">
       <div className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -35,7 +36,17 @@ export default function TaskListContainer({ tasks, onSelectTask, onToggleStatus 
               </div>
 
               <div className="flex items-center space-x-3 shrink-0 text-xs ml-4">
-                <Badge variant="outline" className="text-[10px]">
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${priorityBadgeClasses[task.priority]}`}
+                >
+                  {task.priority}
+                </Badge>
+
+                <Badge
+                  variant="outline"
+                  className={`text-[10px] ${tagBadgeClasses[task.tag] || ""}`}
+                >
                   {task.tag}
                 </Badge>
 
@@ -44,9 +55,21 @@ export default function TaskListContainer({ tasks, onSelectTask, onToggleStatus 
                   <span>{task.completed_sessions}/{task.estimated_sessions}</span>
                 </div>
 
-                <span className="hidden md:inline text-slate-400 dark:text-slate-500">
+                <span className="hidden md:inline rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-slate-500 dark:border-slate-800 dark:bg-slate-800 dark:text-slate-400">
                   {task.due_date}
                 </span>
+
+                <select
+                  value={task.status}
+                  onChange={(event) => onStatusChange(task.id, event.target.value)}
+                  className="hidden rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 lg:block"
+                >
+                  {taskStatuses.map((status) => (
+                    <option key={status.key} value={status.key}>
+                      {status.title}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           );
