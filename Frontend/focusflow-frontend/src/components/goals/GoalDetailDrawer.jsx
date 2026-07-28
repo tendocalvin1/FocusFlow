@@ -1,36 +1,59 @@
-import { useState, useEffect } from "react";
-import { X, CheckCircle, Circle, Calendar, Target, Plus, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Calendar, CheckCircle, Circle, Edit3, Plus, Trash2 } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { categoryColors, priorityColors, statusLabels } from "@/constants/goalConstants";
 
-export default function GoalDetailDrawer({ goal, open, onClose, onUpdateGoal }) {
-  const [currentGoal, setCurrentGoal] = useState(goal);
+function getProgress(subGoals = []) {
+  if (!subGoals.length) return 0;
+
+  return Math.round(
+    (subGoals.filter((subGoal) => subGoal.completed).length / subGoals.length) * 100
+  );
+}
+
+export default function GoalDetailDrawer({
+  goal,
+  open,
+  onClose,
+  onDeleteGoal,
+  onEditGoal,
+  onUpdateGoal,
+}) {
   const [newSubGoalTitle, setNewSubGoalTitle] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  useEffect(() => {
-    setCurrentGoal(goal);
-  }, [goal]);
-
-  if (!currentGoal) return null;
+  if (!goal) return null;
 
   const toggleSubGoal = (subId) => {
-    const updatedSubGoals = currentGoal.sub_goals.map((sub) =>
+    const updatedSubGoals = goal.sub_goals.map((sub) =>
       sub.id === subId ? { ...sub, completed: !sub.completed } : sub
     );
-    const completedCount = updatedSubGoals.filter((s) => s.completed).length;
-    const newProgress = Math.round((completedCount / updatedSubGoals.length) * 100);
+    const newProgress = getProgress(updatedSubGoals);
 
     const updated = {
-      ...currentGoal,
+      ...goal,
       sub_goals: updatedSubGoals,
       progress: newProgress,
       status: newProgress === 100 ? "completed" : "in_progress",
     };
 
-    setCurrentGoal(updated);
+    if (onUpdateGoal) onUpdateGoal(updated);
+  };
+
+  const removeSubGoal = (subId) => {
+    const updatedSubGoals = goal.sub_goals.filter((sub) => sub.id !== subId);
+    const newProgress = getProgress(updatedSubGoals);
+    const updated = {
+      ...goal,
+      sub_goals: updatedSubGoals,
+      progress: newProgress,
+      status: newProgress === 100 && updatedSubGoals.length > 0 ? "completed" : "in_progress",
+    };
+
     if (onUpdateGoal) onUpdateGoal(updated);
   };
 
@@ -44,82 +67,136 @@ export default function GoalDetailDrawer({ goal, open, onClose, onUpdateGoal }) 
       completed: false,
     };
 
-    const updatedSubGoals = [...currentGoal.sub_goals, newSub];
-    const completedCount = updatedSubGoals.filter((s) => s.completed).length;
-    const newProgress = Math.round((completedCount / updatedSubGoals.length) * 100);
+    const updatedSubGoals = [...goal.sub_goals, newSub];
+    const newProgress = getProgress(updatedSubGoals);
 
     const updated = {
-      ...currentGoal,
+      ...goal,
       sub_goals: updatedSubGoals,
       progress: newProgress,
+      status: newProgress === 100 ? "completed" : "in_progress",
     };
 
-    setCurrentGoal(updated);
     setNewSubGoalTitle("");
     if (onUpdateGoal) onUpdateGoal(updated);
   };
 
+  const handleDelete = () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    onDeleteGoal(goal.id);
+    onClose();
+  };
+
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto p-6">
+      <SheetContent className="w-full overflow-y-auto p-6 sm:max-w-md">
         <SheetHeader className="space-y-3 border-b border-slate-100 pb-4 dark:border-slate-800">
           <div className="flex items-center justify-between">
-            <Badge variant="outline" className="text-xs font-semibold">
-              {currentGoal.category}
+            <Badge
+              variant="outline"
+              className={`text-xs font-semibold ${categoryColors[goal.category] || ""}`}
+            >
+              {goal.category}
             </Badge>
             <Badge
-              variant="secondary"
-              className={`text-xs uppercase font-bold ${
-                currentGoal.status === "completed"
-                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
-              }`}
+              variant="outline"
+              className={`text-xs font-semibold ${priorityColors[goal.priority] || ""}`}
             >
-              {currentGoal.status.replace("_", " ")}
+              {goal.priority || "Medium"}
             </Badge>
           </div>
 
           <SheetTitle className="text-xl font-bold text-slate-900 dark:text-slate-100">
-            {currentGoal.title}
+            {goal.title}
           </SheetTitle>
           <SheetDescription className="text-sm text-slate-500 dark:text-slate-400">
-            {currentGoal.description}
+            {goal.description}
           </SheetDescription>
         </SheetHeader>
 
         <div className="py-6 space-y-6">
+          <div className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50/50 p-3 dark:border-slate-800 dark:bg-slate-900/20">
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {statusLabels[goal.status] || goal.status}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onEditGoal(goal)}
+                className="rounded-xl"
+              >
+                <Edit3 className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={handleDelete}
+                className="rounded-xl"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {showDeleteConfirm ? "Confirm" : "Delete"}
+              </Button>
+            </div>
+          </div>
+
+          {showDeleteConfirm && (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+              This removes the goal from the current mock workspace.
+            </p>
+          )}
+
           {/* Overall Progress */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm font-semibold">
               <span className="text-slate-700 dark:text-slate-300">Goal Completion</span>
-              <span className="text-indigo-600 dark:text-indigo-400">{currentGoal.progress}%</span>
+              <span className="text-indigo-600 dark:text-indigo-400">{goal.progress}%</span>
             </div>
-            <Progress value={currentGoal.progress} className="h-2.5 bg-slate-100 dark:bg-slate-800" />
+            <Progress value={goal.progress} className="h-2.5 bg-slate-100 dark:bg-slate-800" />
           </div>
 
           {/* Sub-goals List */}
           <div className="space-y-3">
             <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              Sub-Goals Breakdown ({currentGoal.sub_goals?.filter((s) => s.completed).length}/{currentGoal.sub_goals?.length})
+              Sub-Goals Breakdown ({goal.sub_goals?.filter((s) => s.completed).length || 0}/{goal.sub_goals?.length || 0})
             </h4>
 
             <div className="space-y-2">
-              {currentGoal.sub_goals?.map((sub) => (
+              {goal.sub_goals?.length ? goal.sub_goals.map((sub) => (
                 <div
                   key={sub.id}
-                  onClick={() => toggleSubGoal(sub.id)}
-                  className="flex cursor-pointer items-center space-x-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 transition hover:bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-800/60"
+                  className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 p-3 transition hover:bg-slate-100/60 dark:border-slate-800 dark:bg-slate-900/40 dark:hover:bg-slate-800/60"
                 >
-                  {sub.completed ? (
-                    <CheckCircle className="h-5 w-5 text-emerald-600 shrink-0" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-slate-400 shrink-0" />
-                  )}
-                  <span className={`text-sm ${sub.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"}`}>
+                  <button type="button" onClick={() => toggleSubGoal(sub.id)}>
+                    {sub.completed ? (
+                      <CheckCircle className="h-5 w-5 shrink-0 text-emerald-600" />
+                    ) : (
+                      <Circle className="h-5 w-5 shrink-0 text-slate-400" />
+                    )}
+                  </button>
+                  <span className={`flex-1 text-sm ${sub.completed ? "line-through text-slate-400 dark:text-slate-500" : "text-slate-800 dark:text-slate-200"}`}>
                     {sub.title}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => removeSubGoal(sub.id)}
+                    className="rounded-lg p-1 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
                 </div>
-              ))}
+              )) : (
+                <div className="rounded-xl border border-dashed border-slate-200 p-5 text-center text-xs text-slate-400 dark:border-slate-800">
+                  No sub-goals yet.
+                </div>
+              )}
             </div>
 
             {/* Add Sub-goal Form */}
@@ -142,7 +219,7 @@ export default function GoalDetailDrawer({ goal, open, onClose, onUpdateGoal }) 
               <Calendar className="h-4 w-4 text-indigo-500" />
               <span>Target Completion Date</span>
             </div>
-            <span className="font-semibold text-slate-900 dark:text-slate-100">{currentGoal.target_date}</span>
+            <span className="font-semibold text-slate-900 dark:text-slate-100">{goal.target_date}</span>
           </div>
         </div>
       </SheetContent>

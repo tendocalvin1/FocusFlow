@@ -1,36 +1,39 @@
-import { useState, useEffect } from "react";
-import { CheckSquare, X } from "lucide-react";
+import { useState } from "react";
+import { CheckSquare, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { taskStatuses, taskTags } from "@/constants/taskConstants";
 
-export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defaultStatus = "todo" }) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState("Medium");
-  const [tag, setTag] = useState("Frontend");
-  const [status, setStatus] = useState(defaultStatus);
-  const [estimatedSessions, setEstimatedSessions] = useState(2);
-  const [dueDate, setDueDate] = useState("2026-07-30");
+function getInitialTaskForm(taskToEdit, defaultStatus) {
+  return {
+    title: taskToEdit?.title || "",
+    description: taskToEdit?.description || "",
+    priority: taskToEdit?.priority || "Medium",
+    tag: taskToEdit?.tag || "Frontend",
+    status: taskToEdit?.status || defaultStatus,
+    estimatedSessions: taskToEdit?.estimated_sessions || 2,
+    dueDate: taskToEdit?.due_date || "2026-07-30",
+  };
+}
 
-  useEffect(() => {
-    if (taskToEdit) {
-      setTitle(taskToEdit.title);
-      setDescription(taskToEdit.description);
-      setPriority(taskToEdit.priority);
-      setTag(taskToEdit.tag);
-      setStatus(taskToEdit.status);
-      setEstimatedSessions(taskToEdit.estimated_sessions);
-      setDueDate(taskToEdit.due_date);
-    } else {
-      setTitle("");
-      setDescription("");
-      setPriority("Medium");
-      setTag("Frontend");
-      setStatus(defaultStatus);
-      setEstimatedSessions(2);
-    }
-  }, [taskToEdit, defaultStatus, open]);
+export default function TaskModal({
+  open,
+  onClose,
+  onDeleteTask,
+  onSaveTask,
+  taskToEdit,
+  defaultStatus = "todo",
+}) {
+  const initialForm = getInitialTaskForm(taskToEdit, defaultStatus);
+  const [title, setTitle] = useState(initialForm.title);
+  const [description, setDescription] = useState(initialForm.description);
+  const [priority, setPriority] = useState(initialForm.priority);
+  const [tag, setTag] = useState(initialForm.tag);
+  const [status, setStatus] = useState(initialForm.status);
+  const [estimatedSessions, setEstimatedSessions] = useState(initialForm.estimatedSessions);
+  const [dueDate, setDueDate] = useState(initialForm.dueDate);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   if (!open) return null;
 
@@ -51,6 +54,16 @@ export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defau
     };
 
     onSaveTask(taskData);
+    onClose();
+  };
+
+  const handleDelete = () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    onDeleteTask(taskToEdit.id);
     onClose();
   };
 
@@ -127,10 +140,13 @@ export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defau
                 onChange={(e) => setTag(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               >
-                <option value="Frontend">Frontend</option>
-                <option value="Backend">Backend</option>
-                <option value="Design">Design</option>
-                <option value="DevOps">DevOps</option>
+                {taskTags
+                  .filter((taskTag) => taskTag !== "All")
+                  .map((taskTag) => (
+                    <option key={taskTag} value={taskTag}>
+                      {taskTag}
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
@@ -145,10 +161,11 @@ export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defau
                 onChange={(e) => setStatus(e.target.value)}
                 className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
               >
-                <option value="todo">To Do</option>
-                <option value="in_progress">In Progress</option>
-                <option value="in_review">In Review</option>
-                <option value="done">Done</option>
+                {taskStatuses.map((taskStatus) => (
+                  <option key={taskStatus.key} value={taskStatus.key}>
+                    {taskStatus.title}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -167,7 +184,41 @@ export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defau
             </div>
           </div>
 
-          <div className="flex justify-end space-x-2 pt-4">
+          <div className="space-y-1.5">
+            <Label htmlFor="task-due-date" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              Due Date
+            </Label>
+            <Input
+              id="task-due-date"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              className="rounded-xl border-slate-200 dark:border-slate-800 text-xs"
+            />
+          </div>
+
+          {showDeleteConfirm && (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300">
+              Confirm deletion to remove this task from the mock workspace.
+            </p>
+          )}
+
+          <div className="flex flex-col gap-2 pt-4 sm:flex-row sm:justify-between">
+            {taskToEdit ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                className="rounded-xl text-xs font-medium"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                {showDeleteConfirm ? "Confirm Delete" : "Delete Task"}
+              </Button>
+            ) : (
+              <span />
+            )}
+
+            <div className="flex justify-end space-x-2">
             <Button
               type="button"
               variant="outline"
@@ -182,6 +233,7 @@ export default function TaskModal({ open, onClose, onSaveTask, taskToEdit, defau
             >
               {taskToEdit ? "Save Changes" : "Create Task"}
             </Button>
+            </div>
           </div>
         </form>
       </div>
