@@ -1,5 +1,5 @@
-import { CheckCircle2, Clock, Flame, Zap, Award } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2, Clock, Flame, Zap } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { mockAnalyticsData } from "@/services/analyticsService";
 
 export default function WeeklySummaryCard() {

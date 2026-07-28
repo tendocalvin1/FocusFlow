@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 
 const FocusTimerContext = createContext(null);
 
@@ -9,6 +9,11 @@ export function FocusTimerProvider({ children }) {
   const [isActive, setIsActive] = useState(false);
   const [sessionCount, setSessionCount] = useState(4);
   const [sessionTitle, setSessionTitle] = useState("Deep Work: Core Frontend Features");
+  const timerSnapshotRef = useRef({
+    mode,
+    duration,
+    sessionTitle,
+  });
 
   const [history, setHistory] = useState([
     { id: 1, title: "DRF Authentication Specs", duration: "25 min", tag: "Backend", completedAt: "10:30 AM" },
@@ -17,28 +22,42 @@ export function FocusTimerProvider({ children }) {
   ]);
 
   useEffect(() => {
-    let interval = null;
-    if (isActive && timeLeft > 0) {
-      interval = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      setIsActive(false);
-      // Log session into history
-      if (mode === "pomodoro") {
-        setSessionCount((prev) => prev + 1);
+    timerSnapshotRef.current = {
+      mode,
+      duration,
+      sessionTitle,
+    };
+  }, [mode, duration, sessionTitle]);
+
+  useEffect(() => {
+    if (!isActive) return undefined;
+
+    const interval = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev > 1) return prev - 1;
+
+        setIsActive(false);
+
+        const snapshot = timerSnapshotRef.current;
+        if (snapshot.mode === "pomodoro") {
+          setSessionCount((count) => count + 1);
+
         const newLog = {
           id: Date.now(),
-          title: sessionTitle || "Focus Session",
-          duration: `${Math.round(duration / 60)} min`,
+            title: snapshot.sessionTitle || "Focus Session",
+            duration: `${Math.round(snapshot.duration / 60)} min`,
           tag: "Work",
           completedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
-        setHistory((prev) => [newLog, ...prev]);
-      }
-    }
+          setHistory((historyItems) => [newLog, ...historyItems]);
+        }
+
+        return 0;
+      });
+    }, 1000);
+
     return () => clearInterval(interval);
-  }, [isActive, timeLeft, mode, duration, sessionTitle]);
+  }, [isActive]);
 
   const changeMode = (newMode, minutes) => {
     setMode(newMode);

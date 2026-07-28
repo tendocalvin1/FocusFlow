@@ -1,6 +1,5 @@
-import { PieChart, Tag } from "lucide-react";
+import { PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { mockAnalyticsData } from "@/services/analyticsService";
 
 export default function TimeDistributionChart() {

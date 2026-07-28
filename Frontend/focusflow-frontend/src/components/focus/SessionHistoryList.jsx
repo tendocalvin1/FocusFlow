@@ -1,4 +1,4 @@
-import { Clock, CheckCircle2, History } from "lucide-react";
+import { CheckCircle2, History } from "lucide-react";
 import { useFocusTimer } from "@/context/FocusTimerContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";

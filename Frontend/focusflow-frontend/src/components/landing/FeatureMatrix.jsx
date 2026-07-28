@@ -1,4 +1,4 @@
-import { Target, CheckSquare, Clock, BarChart2, Flame, Sparkles } from "lucide-react";
+import { Target, CheckSquare, Clock, BarChart2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function FeatureMatrix() {

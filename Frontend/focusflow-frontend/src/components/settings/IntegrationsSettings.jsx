@@ -1,11 +1,7 @@
-import { useState } from "react";
-import { Link2, Server, CheckCircle2, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Link2, Server, CheckCircle2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 export default function IntegrationsSettings() {
-  const [apiStatus, setApiStatus] = useState("connected"); // 'connected' | 'testing'
-
   const integrations = [
     {
       name: "Django REST Backend API",
