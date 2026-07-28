@@ -13,6 +13,7 @@ import ForgotPassword from "../pages/Login/ForgotPassword";
 import ResetPassword from "../pages/Login/ResetPassword";
 import Landing from "../pages/Landing/Landing";
 import MainLayout from "../layouts/MainLayout";
+import Profile from "../pages/Profile/Profile";
 
 export default function AppRoutes() {
   return (
@@ -36,6 +37,8 @@ export default function AppRoutes() {
             <Route path="/focus" element={<Focus />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/profile" element={<Profile />} />
+
           </Route>
         </Routes>
       </BrowserRouter>
