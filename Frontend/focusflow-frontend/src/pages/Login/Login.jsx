@@ -30,7 +30,7 @@ export default function Login() {
       setLoading(true);
       await login(email, password);
       navigate("/");
-    } catch (err) {
+    } catch {
       setError("Invalid credentials. Please check your login details.");
     } finally {
       setLoading(false);

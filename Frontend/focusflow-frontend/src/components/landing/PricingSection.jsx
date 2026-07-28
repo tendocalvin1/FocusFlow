@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";

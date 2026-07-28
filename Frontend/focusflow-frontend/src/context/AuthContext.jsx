@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
     }
   }, [user]);
 
-  const login = async (email, password) => {
+  const login = async (email, _password) => {
     // Mock DRF authentication response
     const mockUser = {
       id: 1,
@@ -43,7 +43,7 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
-  const register = async (name, email, password) => {
+  const register = async (name, email, _password) => {
     const mockUser = {
       id: Date.now(),
       name,

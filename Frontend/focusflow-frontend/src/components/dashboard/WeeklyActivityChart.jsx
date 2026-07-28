@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { BarChart2, Calendar, Filter } from "lucide-react";
+import { BarChart2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 export default function WeeklyActivityChart() {
   const [metric, setMetric] = useState("hours"); // 'hours' | 'tasks'

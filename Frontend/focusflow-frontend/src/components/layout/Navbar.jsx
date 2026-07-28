@@ -1,5 +1,4 @@
 import { Search, Bell } from "lucide-react";
-import { Avatar, AvatarFallback } from "../ui/avatar";
 import UserMenu from "./UserMenu";
 // import { Avatar, AvatarFallback } from "../components/ui/avatar.jsx";
 
