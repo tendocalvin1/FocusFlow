@@ -4,20 +4,21 @@ from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshVie
 
 urlpatterns = [
     # register
-    path("api/auth/register/",view=views.register_view,name="register"),
+    path("api/auth/register/",views.register_view,name="register"),
+
+    # profile   
+    path("api/profile/",views.profile_view,name="profile"),
     
-    # profile
-    path("api/profile/",view=views.profile_view,name="profile"),
-    
-    # Change password
-    path("api/auth/change-password/",view=views.change_password_view,name="change-password"),
+    # change-password
+    path("api/auth/change-password/",views.change_password_view,name="change-password"),
     
     # logout
-    path("api/auth/logout/",view=views.logout_view,name="logout"),
-    
+    path("api/auth/logout/",views.logout_view,name="logout"),
+
     # login
-    path("api/token/",TokenObtainPairView.as_view(),name="token-obtain-pair"),
+    path("api/token/",TokenObtainPairView.as_view(),name="token_obtain_pair"),
+
     
     # refresh
-    path("api/token/logout/",TokenRefreshView.as_view(),name="token_refresh")
+    path("api/token/refresh/",TokenRefreshView.as_view(),name="token_refresh")
 ]

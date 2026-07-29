@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Lock, Mail, ArrowRight } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import AuthLayout from "@/components/auth/AuthLayout";
@@ -11,12 +11,16 @@ import { Separator } from "@/components/ui/separator";
 
 export default function Login() {
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [email, setEmail] = useState("alex.morgan@focusflow.io");
-  const [password, setPassword] = useState("password123");
+  const location = useLocation();
+  const { login, loginLoading: contextLoading } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const isSubmitting = loading || contextLoading;
+  const next = location.state?.next || "/";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -29,9 +33,9 @@ export default function Login() {
     try {
       setLoading(true);
       await login(email, password);
-      navigate("/");
-    } catch {
-      setError("Invalid credentials. Please check your login details.");
+      navigate(next, { replace: true });
+    } catch (err) {
+      setError(err?.message || "Invalid credentials. Please check your login details.");
     } finally {
       setLoading(false);
     }
@@ -102,10 +106,10 @@ export default function Login() {
 
         <Button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 font-medium py-2.5"
         >
-          {loading ? "Signing in..." : "Sign in to Workspace"}
+          {isSubmitting ? "Signing in..." : "Sign in to Workspace"}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </form>
