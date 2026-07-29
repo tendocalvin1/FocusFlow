@@ -178,7 +178,8 @@ api.interceptors.response.use(
     } catch (refreshErr) {
       clearTokens();
       onRefreshed(null);
-      window.dispatchEvent(new CustomEvent("focusflow:auth:logout"));
+      clearTokens();
+      window.location.href="/login";
       return Promise.reject(buildAuthError(refreshErr));
     } finally {
       isRefreshing = false;
