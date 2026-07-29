@@ -1,33 +1,67 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  FOCUS_SETTINGS_STORAGE_KEY,
+  defaultFocusSettings,
+  focusModes,
+} from "@/constants/focusConstants";
+import { mockFocusSessions, mockFocusStats } from "@/data/mockSessions";
 
 const FocusTimerContext = createContext(null);
 
-export function FocusTimerProvider({ children }) {
-  const [mode, setMode] = useState("pomodoro"); // 'pomodoro' | 'shortBreak' | 'longBreak'
-  const [duration, setDuration] = useState(25 * 60);
-  const [timeLeft, setTimeLeft] = useState(25 * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [sessionCount, setSessionCount] = useState(4);
-  const [sessionTitle, setSessionTitle] = useState("Deep Work: Core Frontend Features");
-  const timerSnapshotRef = useRef({
-    mode,
-    duration,
-    sessionTitle,
-  });
+function loadSettings() {
+  try {
+    const saved = localStorage.getItem(FOCUS_SETTINGS_STORAGE_KEY);
+    return saved ? { ...defaultFocusSettings, ...JSON.parse(saved) } : defaultFocusSettings;
+  } catch {
+    return defaultFocusSettings;
+  }
+}
 
-  const [history, setHistory] = useState([
-    { id: 1, title: "DRF Authentication Specs", duration: "25 min", tag: "Backend", completedAt: "10:30 AM" },
-    { id: 2, title: "Tailwind CSS v4 Token Mapping", duration: "45 min", tag: "Design", completedAt: "11:40 AM" },
-    { id: 3, title: "Dashboard Responsive Layouts", duration: "25 min", tag: "Frontend", completedAt: "02:15 PM" },
-  ]);
+function getModeDuration(mode, settings) {
+  const modeConfig = focusModes.find((item) => item.id === mode) || focusModes[0];
+  return settings[modeConfig.settingsKey] * 60;
+}
+
+function getTodayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+export function FocusTimerProvider({ children }) {
+  const [mode, setMode] = useState("pomodoro");
+  const [settings, setSettings] = useState(loadSettings);
+  const [duration, setDuration] = useState(() => getModeDuration("pomodoro", loadSettings()));
+  const [timeLeft, setTimeLeft] = useState(duration);
+  const [isActive, setIsActive] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [sessionTitle, setSessionTitle] = useState("Deep Work: Core Frontend Features");
+  const [history, setHistory] = useState(mockFocusSessions);
+  const snapshotRef = useRef({ mode, duration, sessionTitle, settings });
 
   useEffect(() => {
-    timerSnapshotRef.current = {
-      mode,
-      duration,
-      sessionTitle,
-    };
-  }, [mode, duration, sessionTitle]);
+    localStorage.setItem(FOCUS_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    snapshotRef.current = { mode, duration, sessionTitle, settings };
+  }, [duration, mode, sessionTitle, settings]);
+
+  const completeSession = (status = "completed") => {
+    const snapshot = snapshotRef.current;
+    const now = new Date();
+    const durationMinutes = Math.round(snapshot.duration / 60);
+
+    setHistory((items) => [
+      {
+        id: Date.now(),
+        title: snapshot.sessionTitle || "Focus Session",
+        mode: snapshot.mode,
+        durationMinutes,
+        duration: `${durationMinutes} min`,
+        status,
+        completedAt: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        date: now.toISOString().slice(0, 10),
+        tag: snapshot.mode === "pomodoro" || snapshot.mode === "custom" ? "Work" : "Recovery",
+      },
+      ...items,
+    ]);
+  };
 
   useEffect(() => {
     if (!isActive) return undefined;
@@ -36,22 +70,9 @@ export function FocusTimerProvider({ children }) {
       setTimeLeft((prev) => {
         if (prev > 1) return prev - 1;
 
+        completeSession("completed");
         setIsActive(false);
-
-        const snapshot = timerSnapshotRef.current;
-        if (snapshot.mode === "pomodoro") {
-          setSessionCount((count) => count + 1);
-
-        const newLog = {
-          id: Date.now(),
-            title: snapshot.sessionTitle || "Focus Session",
-            duration: `${Math.round(snapshot.duration / 60)} min`,
-          tag: "Work",
-          completedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        };
-          setHistory((historyItems) => [newLog, ...historyItems]);
-        }
-
+        setHasStarted(false);
         return 0;
       });
     }, 1000);
@@ -59,20 +80,72 @@ export function FocusTimerProvider({ children }) {
     return () => clearInterval(interval);
   }, [isActive]);
 
-  const changeMode = (newMode, minutes) => {
+  const changeMode = (newMode) => {
+    const nextDuration = getModeDuration(newMode, settings);
     setMode(newMode);
-    const secs = minutes * 60;
-    setDuration(secs);
-    setTimeLeft(secs);
+    setDuration(nextDuration);
+    setTimeLeft(nextDuration);
     setIsActive(false);
+    setHasStarted(false);
   };
 
-  const toggleTimer = () => setIsActive(!isActive);
+  const updateSettings = (nextSettings) => {
+    setSettings((prev) => {
+      const updated = { ...prev, ...nextSettings };
+      const nextDuration = getModeDuration(mode, updated);
+      setDuration(nextDuration);
+      setTimeLeft(nextDuration);
+      setIsActive(false);
+      setHasStarted(false);
+      return updated;
+    });
+  };
+
+  const startTimer = () => {
+    setHasStarted(true);
+    setIsActive(true);
+  };
+
+  const pauseTimer = () => setIsActive(false);
+  const resumeTimer = () => setIsActive(true);
 
   const resetTimer = () => {
     setIsActive(false);
+    setHasStarted(false);
     setTimeLeft(duration);
   };
+
+  const skipBreak = () => {
+    if (mode === "shortBreak" || mode === "longBreak") {
+      changeMode("pomodoro");
+    }
+  };
+
+  const todayKey = getTodayKey();
+  const todaySessions = history.filter((session) => session.date === todayKey);
+  const completedSessions = history.filter((session) => session.status === "completed");
+
+  const stats = useMemo(() => {
+    const todayFocusMinutes = todaySessions
+      .filter((session) => session.status === "completed")
+      .reduce((total, session) => total + session.durationMinutes, 0);
+    const weekFocusMinutes = completedSessions.reduce(
+      (total, session) => total + session.durationMinutes,
+      0
+    );
+    const completedPomodoros = completedSessions.filter(
+      (session) => session.mode === "pomodoro"
+    ).length;
+
+    return {
+      todayFocusMinutes,
+      weekFocusMinutes,
+      completedPomodoros,
+      currentStreak: mockFocusStats.currentStreak,
+      longestStreak: mockFocusStats.longestStreak,
+      averageDailyFocusMinutes: Math.round(weekFocusMinutes / 7),
+    };
+  }, [completedSessions, todaySessions]);
 
   return (
     <FocusTimerContext.Provider
@@ -81,13 +154,20 @@ export function FocusTimerProvider({ children }) {
         duration,
         timeLeft,
         isActive,
-        sessionCount,
+        hasStarted,
         sessionTitle,
-        setSessionTitle,
+        settings,
         history,
+        todaySessions,
+        stats,
+        setSessionTitle,
         changeMode,
-        toggleTimer,
+        pauseTimer,
         resetTimer,
+        resumeTimer,
+        skipBreak,
+        startTimer,
+        updateSettings,
       }}
     >
       {children}
