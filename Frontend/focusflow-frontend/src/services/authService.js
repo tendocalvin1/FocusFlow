@@ -58,14 +58,15 @@ export async function login(email, password) {
 
 export async function register(name, email, password) {
   try {
-    const payload = {
-      email,
-      password,
-      username: email,
-      full_name: name,
-      name,
-      password_confirm: password,
-    };
+    const [firstName, ...rest] = name.trim().split(" ");
+
+const payload = {
+  username: email,
+  first_name: firstName,
+  last_name: rest.join(" "),
+  email,
+  password,
+};
     const res = await api.post("/api/auth/register/", payload);
     const created = res.data;
     try {
@@ -103,7 +104,7 @@ export async function logout() {
   try {
     const refresh = localStorage.getItem("focusflow_refresh");
     if (refresh) {
-      await api.post("/api/token/logout/", { refresh });
+      await api.post("/api/token/refresh/", { refresh });
     }
   } catch (_) {
     /* ignore */
