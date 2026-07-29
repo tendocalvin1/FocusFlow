@@ -1,162 +1,178 @@
-import { Play, Pause, RotateCcw, SkipForward, Flame } from "lucide-react";
+import { motion } from "framer-motion";
+import { Pause, Play, RotateCcw, SkipForward } from "lucide-react";
 import { useFocusTimer } from "@/context/FocusTimerContext";
+import { focusModes } from "@/constants/focusConstants";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export default function FocusTimer() {
+function formatTime(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return {
+    minutes: String(minutes).padStart(2, "0"),
+    seconds: String(seconds).padStart(2, "0"),
+  };
+}
+
+export default function FocusTimer({ isLoading = false }) {
   const {
     mode,
     duration,
     timeLeft,
     isActive,
-    sessionCount,
+    hasStarted,
     sessionTitle,
     setSessionTitle,
     changeMode,
-    toggleTimer,
+    pauseTimer,
     resetTimer,
+    resumeTimer,
+    skipBreak,
+    startTimer,
   } = useFocusTimer();
 
-  const minutes = Math.floor(timeLeft / 60);
-  const seconds = timeLeft % 60;
-  const formattedTime = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  if (isLoading) {
+    return (
+      <div className="h-[560px] animate-pulse rounded-2xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800 dark:bg-slate-900" />
+    );
+  }
 
-  const progressPercent = Math.round(((duration - timeLeft) / duration) * 100);
-
-  // SVG Circular progress math
-  const radius = 110;
+  const { minutes, seconds } = formatTime(timeLeft);
+  const progress = duration > 0 ? (duration - timeLeft) / duration : 0;
+  const radius = 116;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progressPercent / 100) * circumference;
+  const currentMode = focusModes.find((item) => item.id === mode);
+  const isBreak = mode === "shortBreak" || mode === "longBreak";
+  const primaryLabel = isActive ? "Pause" : hasStarted ? "Resume" : "Start";
+
+  const handlePrimaryAction = () => {
+    if (isActive) {
+      pauseTimer();
+      return;
+    }
+
+    if (hasStarted) {
+      resumeTimer();
+      return;
+    }
+
+    startTimer();
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center rounded-2xl border border-slate-200/80 bg-white/90 p-8 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/90 text-center space-y-6">
-      {/* Mode Switcher Tabs */}
-      <div className="flex items-center space-x-1.5 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-        <button
-          onClick={() => changeMode("pomodoro", 25)}
-          className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-            mode === "pomodoro"
-              ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-700 dark:text-slate-100"
-              : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
-          }`}
+    <section className="rounded-2xl border border-slate-200/80 bg-white/90 p-5 text-center shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/90 sm:p-8">
+      <div className="mx-auto flex max-w-3xl flex-col items-center space-y-6">
+        <div
+          className="flex w-full flex-wrap justify-center gap-1.5 rounded-xl bg-slate-100 p-1 dark:bg-slate-800"
+          role="tablist"
+          aria-label="Timer mode"
         >
-          Focus (25m)
-        </button>
-        <button
-          onClick={() => changeMode("shortBreak", 5)}
-          className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-            mode === "shortBreak"
-              ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-700 dark:text-slate-100"
-              : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
-          }`}
-        >
-          Short Break (5m)
-        </button>
-        <button
-          onClick={() => changeMode("longBreak", 15)}
-          className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-            mode === "longBreak"
-              ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-700 dark:text-slate-100"
-              : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
-          }`}
-        >
-          Long Break (15m)
-        </button>
-      </div>
+          {focusModes.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={mode === item.id}
+              onClick={() => changeMode(item.id)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                mode === item.id
+                  ? "bg-white text-slate-900 shadow-2xs dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400"
+              }`}
+            >
+              {item.shortLabel}
+            </button>
+          ))}
+        </div>
 
-      {/* Editable Session Title Input */}
-      <div className="w-full max-w-sm">
-        <Input
-          type="text"
-          value={sessionTitle}
-          onChange={(e) => setSessionTitle(e.target.value)}
-          placeholder="What are you focusing on?"
-          className="text-center font-medium border-transparent hover:border-slate-200 focus-visible:ring-indigo-500 text-sm dark:border-transparent dark:hover:border-slate-800"
-        />
-      </div>
-
-      {/* Animated Circular SVG Timer Ring */}
-      <div className="relative flex items-center justify-center my-4">
-        <svg className="h-64 w-64 -rotate-90 transform">
-          {/* Background Track Circle */}
-          <circle
-            cx="128"
-            cy="128"
-            r={radius}
-            className="stroke-slate-100 dark:stroke-slate-800"
-            strokeWidth="10"
-            fill="transparent"
+        <div className="w-full max-w-sm">
+          <Input
+            aria-label="Current focus session title"
+            type="text"
+            value={sessionTitle}
+            onChange={(event) => setSessionTitle(event.target.value)}
+            placeholder="What are you focusing on?"
+            className="h-10 rounded-xl border-transparent text-center text-sm font-medium hover:border-slate-200 focus-visible:ring-indigo-500 dark:border-transparent dark:hover:border-slate-800"
           />
-          {/* Animated Progress Circle */}
-          <circle
-            cx="128"
-            cy="128"
-            r={radius}
-            className="stroke-indigo-600 dark:stroke-indigo-400 transition-all duration-500 ease-linear"
-            strokeWidth="10"
-            strokeDasharray={circumference}
-            strokeDashoffset={strokeDashoffset}
-            strokeLinecap="round"
-            fill="transparent"
-          />
-        </svg>
+        </div>
 
-        <div className="absolute flex flex-col items-center">
-          <span className="text-5xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100 font-mono">
-            {formattedTime}
-          </span>
-          <span className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
-            {isActive ? "Session in progress" : "Paused"}
-          </span>
+        <div className="relative flex items-center justify-center py-2">
+          <svg className="h-72 w-72 -rotate-90 sm:h-80 sm:w-80" viewBox="0 0 280 280">
+            <circle
+              cx="140"
+              cy="140"
+              r={radius}
+              className="stroke-slate-100 dark:stroke-slate-800"
+              strokeWidth="12"
+              fill="transparent"
+            />
+            <motion.circle
+              cx="140"
+              cy="140"
+              r={radius}
+              className="stroke-indigo-600 dark:stroke-indigo-400"
+              strokeWidth="12"
+              strokeDasharray={circumference}
+              strokeLinecap="round"
+              fill="transparent"
+              animate={{ strokeDashoffset: circumference - progress * circumference }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+            />
+          </svg>
+
+          <div className="absolute flex flex-col items-center">
+            <span className="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+              {currentMode?.label}
+            </span>
+            <div className="mt-3 flex items-baseline font-mono text-6xl font-extrabold tracking-tight text-slate-900 dark:text-slate-100">
+              <span>{minutes}</span>
+              <span className="mx-1 text-slate-300 dark:text-slate-700">:</span>
+              <span>{seconds}</span>
+            </div>
+            <span className="mt-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              {isActive ? "Running" : hasStarted ? "Paused" : "Ready"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={resetTimer}
+            aria-label="Reset timer"
+            className="h-12 w-12 rounded-2xl border-slate-200 dark:border-slate-800"
+          >
+            <RotateCcw className="h-5 w-5" />
+          </Button>
+
+          <Button
+            type="button"
+            onClick={handlePrimaryAction}
+            aria-label={`${primaryLabel} timer`}
+            className={`h-14 rounded-2xl px-8 text-base font-bold shadow-md ${
+              isActive
+                ? "bg-amber-500 text-white hover:bg-amber-600"
+                : "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900"
+            }`}
+          >
+            {isActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current" />}
+            {primaryLabel}
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={isBreak ? skipBreak : resetTimer}
+            aria-label={isBreak ? "Skip break" : "Restart current timer"}
+            className="h-12 w-12 rounded-2xl border-slate-200 dark:border-slate-800"
+          >
+            <SkipForward className="h-5 w-5" />
+          </Button>
         </div>
       </div>
-
-      {/* Control Buttons */}
-      <div className="flex items-center space-x-3">
-        <Button
-          onClick={resetTimer}
-          variant="outline"
-          size="icon"
-          className="h-12 w-12 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <RotateCcw className="h-5 w-5" />
-        </Button>
-
-        <Button
-          onClick={toggleTimer}
-          size="lg"
-          className={`h-14 px-8 rounded-2xl font-bold text-base shadow-md transition ${
-            isActive
-              ? "bg-amber-500 text-white hover:bg-amber-600"
-              : "bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-          }`}
-        >
-          {isActive ? (
-            <>
-              <Pause className="mr-2 h-5 w-5 fill-current" /> Pause
-            </>
-          ) : (
-            <>
-              <Play className="mr-2 h-5 w-5 fill-current" /> Start Focus
-            </>
-          )}
-        </Button>
-
-        <Button
-          onClick={() => changeMode(mode, duration / 60)}
-          variant="outline"
-          size="icon"
-          className="h-12 w-12 rounded-2xl border-slate-200 text-slate-600 hover:bg-slate-100 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
-        >
-          <SkipForward className="h-5 w-5" />
-        </Button>
-      </div>
-
-      {/* Streak / Session Counter Footer */}
-      <div className="flex items-center space-x-2 text-xs font-medium text-slate-500 dark:text-slate-400 pt-2">
-        <Flame className="h-4 w-4 text-orange-500" />
-        <span>Completed {sessionCount} focus sessions today</span>
-      </div>
-    </div>
+    </section>
   );
 }
