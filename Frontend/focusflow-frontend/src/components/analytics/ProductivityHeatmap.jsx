@@ -1,15 +1,32 @@
+import * as React from "react";
 import { Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockAnalyticsData } from "@/services/analyticsService";
+import { analyticsService } from "@/services/analyticsService";
 
 export default function ProductivityHeatmap() {
-  const grid = mockAnalyticsData.heatmapGrid;
+  const [grid, setGrid] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    analyticsService
+      .getHeatmapGrid("28d")
+      .then((data) => {
+        if (mounted) setGrid(data);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const intensityColors = [
-    "bg-slate-100 dark:bg-slate-800/80", // 0 hours
-    "bg-indigo-200 dark:bg-indigo-950", // 1-2 hours
-    "bg-indigo-400 dark:bg-indigo-700", // 3-4 hours
-    "bg-indigo-600 dark:bg-indigo-500", // 5+ hours
+    "bg-slate-100 dark:bg-slate-800/80",
+    "bg-indigo-200 dark:bg-indigo-950",
+    "bg-indigo-400 dark:bg-indigo-700",
+    "bg-indigo-600 dark:bg-indigo-500",
   ];
 
   return (
@@ -29,7 +46,6 @@ export default function ProductivityHeatmap() {
           </div>
         </div>
 
-        {/* Legend */}
         <div className="flex items-center space-x-1.5 text-[10px] text-slate-500 dark:text-slate-400">
           <span>Less</span>
           {intensityColors.map((color, i) => (
@@ -40,25 +56,35 @@ export default function ProductivityHeatmap() {
       </CardHeader>
 
       <CardContent className="pt-1">
-        <div className="grid grid-cols-7 gap-2">
-          {grid.map((item) => (
-            <div
-              key={item.day}
-              className={`group relative flex h-9 w-full flex-col items-center justify-center rounded-lg ${intensityColors[item.intensity]} transition hover:scale-105`}
-            >
-              <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                {item.day}
-              </span>
-
-              {/* Tooltip */}
-              <div className="pointer-events-none absolute -top-8 opacity-0 transition group-hover:opacity-100 z-10">
-                <span className="rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white shadow-md">
-                  Day {item.day}: {item.intensity * 2} hrs focus
+        {isLoading ? (
+          <div className="grid grid-cols-7 gap-2">
+            {Array.from({ length: 28 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-9 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800"
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-7 gap-2">
+            {grid.map((item) => (
+              <div
+                key={item.day}
+                className={`group relative flex h-9 w-full flex-col items-center justify-center rounded-lg ${intensityColors[item.intensity]} transition hover:scale-105`}
+              >
+                <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                  {item.day}
                 </span>
+
+                <div className="pointer-events-none absolute -top-8 opacity-0 transition group-hover:opacity-100 z-10">
+                  <span className="rounded-md bg-slate-900 px-2 py-1 text-[10px] text-white shadow-md">
+                    Day {item.day}: {item.intensity * 2} hrs focus
+                  </span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );

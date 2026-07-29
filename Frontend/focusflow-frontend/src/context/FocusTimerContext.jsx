@@ -4,7 +4,7 @@ import {
   defaultFocusSettings,
   focusModes,
 } from "@/constants/focusConstants";
-import { mockFocusSessions, mockFocusStats } from "@/data/mockSessions";
+import { focusService } from "@/services/focusService";
 
 const FocusTimerContext = createContext(null);
 
@@ -34,8 +34,33 @@ export function FocusTimerProvider({ children }) {
   const [isActive, setIsActive] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [sessionTitle, setSessionTitle] = useState("Deep Work: Core Frontend Features");
-  const [history, setHistory] = useState(mockFocusSessions);
+  const [history, setHistory] = useState([]);
+  const [stats, setStats] = useState({
+    todayFocusMinutes: 0,
+    weekFocusMinutes: 0,
+    completedPomodoros: 0,
+    currentStreak: 0,
+    longestStreak: 0,
+    averageDailyFocusMinutes: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
   const snapshotRef = useRef({ mode, duration, sessionTitle, settings });
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([focusService.getSessions(), focusService.getStats()])
+      .then(([sessions, computedStats]) => {
+        if (!mounted) return;
+        setHistory(sessions);
+        setStats(computedStats);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(FOCUS_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
@@ -46,21 +71,20 @@ export function FocusTimerProvider({ children }) {
     const snapshot = snapshotRef.current;
     const now = new Date();
     const durationMinutes = Math.round(snapshot.duration / 60);
+    const payload = {
+      title: snapshot.sessionTitle || "Focus Session",
+      mode: snapshot.mode,
+      durationMinutes,
+      status,
+      tag: snapshot.mode === "pomodoro" || snapshot.mode === "custom" ? "Work" : "Recovery",
+      completedAt: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      date: now.toISOString().slice(0, 10),
+    };
 
-    setHistory((items) => [
-      {
-        id: Date.now(),
-        title: snapshot.sessionTitle || "Focus Session",
-        mode: snapshot.mode,
-        durationMinutes,
-        duration: `${durationMinutes} min`,
-        status,
-        completedAt: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        date: now.toISOString().slice(0, 10),
-        tag: snapshot.mode === "pomodoro" || snapshot.mode === "custom" ? "Work" : "Recovery",
-      },
-      ...items,
-    ]);
+    focusService.createSession(payload).then((created) => {
+      setHistory((items) => [created, ...items]);
+      focusService.getStats().then(setStats);
+    });
   };
 
   useEffect(() => {
@@ -122,30 +146,10 @@ export function FocusTimerProvider({ children }) {
   };
 
   const todayKey = getTodayKey();
-  const todaySessions = history.filter((session) => session.date === todayKey);
-  const completedSessions = history.filter((session) => session.status === "completed");
-
-  const stats = useMemo(() => {
-    const todayFocusMinutes = todaySessions
-      .filter((session) => session.status === "completed")
-      .reduce((total, session) => total + session.durationMinutes, 0);
-    const weekFocusMinutes = completedSessions.reduce(
-      (total, session) => total + session.durationMinutes,
-      0
-    );
-    const completedPomodoros = completedSessions.filter(
-      (session) => session.mode === "pomodoro"
-    ).length;
-
-    return {
-      todayFocusMinutes,
-      weekFocusMinutes,
-      completedPomodoros,
-      currentStreak: mockFocusStats.currentStreak,
-      longestStreak: mockFocusStats.longestStreak,
-      averageDailyFocusMinutes: Math.round(weekFocusMinutes / 7),
-    };
-  }, [completedSessions, todaySessions]);
+  const todaySessions = useMemo(
+    () => history.filter((session) => session.date === todayKey),
+    [history, todayKey]
+  );
 
   return (
     <FocusTimerContext.Provider
@@ -160,6 +164,7 @@ export function FocusTimerProvider({ children }) {
         history,
         todaySessions,
         stats,
+        isLoading,
         setSessionTitle,
         changeMode,
         pauseTimer,

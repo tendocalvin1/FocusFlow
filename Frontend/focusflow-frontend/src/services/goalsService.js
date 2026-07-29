@@ -1,75 +1,72 @@
-export const initialGoals = [
-  {
-    id: 1,
-    title: "Launch FocusFlow SaaS v1.0",
-    description: "Complete frontend UI, integrate mock API layers, and conduct end-to-end responsiveness testing.",
-    category: "Work",
-    priority: "High",
-    status: "in_progress", // 'in_progress' | 'completed' | 'on_hold'
-    progress: 75,
-    target_date: "2026-08-15",
-    color: "indigo",
-    sub_goals: [
-      { id: 101, title: "Design System & Component Architecture", completed: true },
-      { id: 102, title: "Dashboard & Core Modules Frontend", completed: true },
-      { id: 103, title: "Django REST API Specs & Integration", completed: false },
-      { id: 104, title: "Production Deployment & Monitoring", completed: false },
-    ],
-  },
-  {
-    id: 2,
-    title: "Master React 19 & Concurrent Rendering",
-    description: "Deep dive into React 19 Server Components, Actions, and useOptimistic hook patterns.",
-    category: "Learning",
-    priority: "Medium",
-    status: "in_progress",
-    progress: 60,
-    target_date: "2026-09-01",
-    color: "emerald",
-    sub_goals: [
-      { id: 201, title: "Read React 19 official release notes", completed: true },
-      { id: 202, title: "Build custom async action hooks", completed: true },
-      { id: 203, title: "Benchmark performance gains", completed: false },
-    ],
-  },
-  {
-    id: 3,
-    title: "Run 10km Endurance Challenge",
-    description: "Maintain morning cardio routines and build stamina over 8 consecutive weeks.",
-    category: "Health",
-    priority: "Medium",
-    status: "in_progress",
-    progress: 40,
-    target_date: "2026-10-10",
-    color: "amber",
-    sub_goals: [
-      { id: 301, title: "Week 1-2: 3km baseline runs", completed: true },
-      { id: 302, title: "Week 3-5: 5km tempo runs", completed: true },
-      { id: 303, title: "Week 6-8: 10km final run", completed: false },
-    ],
-  },
-  {
-    id: 4,
-    title: "Build Personal Design System",
-    description: "Construct a Tailwind v4 + Radix/shadcn component token set for scalable SaaS apps.",
-    category: "Personal",
-    priority: "Low",
-    status: "completed",
-    progress: 100,
-    target_date: "2026-07-20",
-    color: "purple",
-    sub_goals: [
-      { id: 401, title: "Define color tokens & typography", completed: true },
-      { id: 402, title: "Build button & input variants", completed: true },
-      { id: 403, title: "Publish npm component package", completed: true },
-    ],
-  },
-];
+import { mockGoals } from "@/data/mockGoals";
+
+const delay = (data, ms = 150) =>
+  new Promise((resolve) => setTimeout(() => resolve(data), ms));
+
+const clone = (obj) => JSON.parse(JSON.stringify(obj));
 
 export const goalsService = {
-  getGoals: async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...initialGoals]), 150);
-    });
+  getGoals: async (filters = {}) => {
+    let result = clone(mockGoals);
+    if (filters?.category && filters.category !== "All") {
+      result = result.filter((g) => g.category === filters.category);
+    }
+    if (filters?.status && filters.status !== "All") {
+      result = result.filter((g) => g.status === filters.status);
+    }
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      result = result.filter(
+        (g) =>
+          g.title.toLowerCase().includes(q) ||
+          g.description.toLowerCase().includes(q)
+      );
+    }
+    return delay(result);
+  },
+
+  getGoalById: async (id) => {
+    const goal = mockGoals.find((g) => g.id === id);
+    return delay(goal ? clone(goal) : null);
+  },
+
+  createGoal: async (payload) => {
+    const newGoal = {
+      id: Date.now(),
+      progress: 0,
+      status: "in_progress",
+      sub_goals: [],
+      ...payload,
+    };
+    mockGoals.unshift(newGoal);
+    return delay(clone(newGoal), 100);
+  },
+
+  updateGoal: async (id, payload) => {
+    const idx = mockGoals.findIndex((g) => g.id === id);
+    if (idx === -1) return delay(null);
+    mockGoals[idx] = { ...mockGoals[idx], ...payload };
+    return delay(clone(mockGoals[idx]), 100);
+  },
+
+  deleteGoal: async (id) => {
+    const idx = mockGoals.findIndex((g) => g.id === id);
+    if (idx === -1) return delay(false);
+    mockGoals.splice(idx, 1);
+    return delay(true, 100);
+  },
+
+  updateSubGoal: async (goalId, subGoalId, patch) => {
+    const goal = mockGoals.find((g) => g.id === goalId);
+    if (!goal) return delay(null);
+    const subIdx = goal.sub_goals.findIndex((s) => s.id === subGoalId);
+    if (subIdx === -1) return delay(null);
+    goal.sub_goals[subIdx] = { ...goal.sub_goals[subIdx], ...patch };
+    const completedCount = goal.sub_goals.filter((s) => s.completed).length;
+    goal.progress = goal.sub_goals.length
+      ? Math.round((completedCount / goal.sub_goals.length) * 100)
+      : 0;
+    if (goal.progress === 100) goal.status = "completed";
+    return delay(clone(goal), 100);
   },
 };
