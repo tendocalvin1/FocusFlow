@@ -11,13 +11,15 @@ import { Separator } from "@/components/ui/separator";
 
 export default function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { register, registerLoading: contextLoading } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const isSubmitting = loading || contextLoading;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,9 +38,9 @@ export default function Register() {
     try {
       setLoading(true);
       await register(name, email, password);
-      navigate("/");
-    } catch {
-      setError("Registration failed. Please try again.");
+      navigate("/", { replace: true });
+    } catch (err) {
+      setError(err?.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -119,10 +121,10 @@ export default function Register() {
 
         <Button
           type="submit"
-          disabled={loading}
+          disabled={isSubmitting}
           className="w-full gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200 font-medium py-2.5"
         >
-          {loading ? "Creating account..." : "Create Account"}
+          {isSubmitting ? "Creating account..." : "Create Account"}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </form>

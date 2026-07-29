@@ -14,6 +14,7 @@ import ResetPassword from "../pages/Login/ResetPassword";
 import Landing from "../pages/Landing/Landing";
 import MainLayout from "../layouts/MainLayout";
 import Profile from "../pages/Profile/Profile";
+import ProtectedRoute, { GuestRoute } from "./ProtectedRoute";
 
 function NotFound() {
   return (
@@ -35,17 +36,34 @@ export default function AppRoutes() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public Marketing Landing Page */}
           <Route path="/landing" element={<Landing />} />
 
-          {/* Unauthenticated Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route
+            path="/login"
+            element={
+              <GuestRoute>
+                <Login />
+              </GuestRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <GuestRoute>
+                <Register />
+              </GuestRoute>
+            }
+          />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
 
-          {/* Main SaaS Dashboard Layout */}
-          <Route element={<MainLayout />}>
+          <Route
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="/" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/goals" element={<Goals />} />
@@ -55,7 +73,6 @@ export default function AppRoutes() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
-
           </Route>
         </Routes>
       </BrowserRouter>
