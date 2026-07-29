@@ -1,9 +1,26 @@
+import * as React from "react";
 import { PieChart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockAnalyticsData } from "@/services/analyticsService";
+import { analyticsService } from "@/services/analyticsService";
 
 export default function TimeDistributionChart() {
-  const categories = mockAnalyticsData.categoryDistribution;
+  const [categories, setCategories] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    analyticsService
+      .getCategoryDistribution()
+      .then((data) => {
+        if (mounted) setCategories(data);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <Card className="rounded-2xl border border-slate-200/80 bg-white/90 shadow-sm backdrop-blur-sm dark:border-slate-800 dark:bg-slate-900/90">
@@ -24,36 +41,50 @@ export default function TimeDistributionChart() {
       </CardHeader>
 
       <CardContent className="space-y-4 pt-1">
-        {/* Stacked Percentage Bar */}
-        <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
-          {categories.map((cat, idx) => (
-            <div
-              key={idx}
-              style={{ width: `${cat.percentage}%` }}
-              className={`${cat.color} transition-all duration-300`}
-              title={`${cat.category}: ${cat.percentage}%`}
-            />
-          ))}
-        </div>
-
-        {/* Category List */}
-        <div className="space-y-3 pt-2">
-          {categories.map((cat, idx) => (
-            <div key={idx} className="flex items-center justify-between text-xs">
-              <div className="flex items-center space-x-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${cat.color}`} />
-                <span className="font-semibold text-slate-800 dark:text-slate-200">
-                  {cat.category}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-3 text-slate-500 dark:text-slate-400">
-                <span>{cat.hours}</span>
-                <span className="font-bold text-slate-900 dark:text-slate-100">{cat.percentage}%</span>
-              </div>
+        {isLoading ? (
+          <div className="space-y-4">
+            <div className="h-3 animate-pulse rounded-full bg-slate-100 dark:bg-slate-800" />
+            {[0, 1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className="h-4 animate-pulse rounded-md bg-slate-100 dark:bg-slate-800"
+              />
+            ))}
+          </div>
+        ) : (
+          <>
+            <div className="flex h-3 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+              {categories.map((cat, idx) => (
+                <div
+                  key={idx}
+                  style={{ width: `${cat.percentage}%` }}
+                  className={`${cat.color} transition-all duration-300`}
+                  title={`${cat.category}: ${cat.percentage}%`}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+
+            <div className="space-y-3 pt-2">
+              {categories.map((cat, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs">
+                  <div className="flex items-center space-x-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${cat.color}`} />
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      {cat.category}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center space-x-3 text-slate-500 dark:text-slate-400">
+                    <span>{cat.hours}</span>
+                    <span className="font-bold text-slate-900 dark:text-slate-100">
+                      {cat.percentage}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

@@ -1,11 +1,27 @@
-import { useState } from "react";
+import * as React from "react";
 import { TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockAnalyticsData } from "@/services/analyticsService";
+import { analyticsService } from "@/services/analyticsService";
 
 export default function ProductivityTrendChart() {
-  const [timeRange, setTimeRange] = useState("7d");
-  const data = mockAnalyticsData.trend7Days;
+  const [timeRange, setTimeRange] = React.useState("7d");
+  const [data, setData] = React.useState([]);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    let mounted = true;
+    analyticsService
+      .getProductivityTrend(timeRange)
+      .then((trend) => {
+        if (mounted) setData(trend);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [timeRange]);
 
   const maxVal = 8;
 
@@ -26,7 +42,6 @@ export default function ProductivityTrendChart() {
           </div>
         </div>
 
-        {/* Range Selector */}
         <div className="flex items-center space-x-1 rounded-lg bg-slate-100 p-1 dark:bg-slate-800">
           {["7d", "30d", "90d"].map((range) => (
             <button
@@ -45,32 +60,38 @@ export default function ProductivityTrendChart() {
       </CardHeader>
 
       <CardContent className="pt-4">
-        <div className="flex h-48 items-end justify-between gap-3 pt-6 pb-2">
-          {data.map((item, idx) => {
-            const heightPercent = Math.round((item.hours / maxVal) * 100);
-            return (
-              <div key={idx} className="group relative flex flex-1 flex-col items-center">
-                {/* Tooltip */}
-                <div className="pointer-events-none absolute -top-9 opacity-0 transition group-hover:opacity-100">
-                  <span className="rounded-md bg-slate-900 px-2 py-1 text-[11px] font-bold text-white shadow-md dark:bg-slate-100 dark:text-slate-900">
-                    {item.hours}h ({item.tasks} tasks)
+        {isLoading ? (
+          <div className="h-48 animate-pulse rounded-xl bg-slate-100/60 dark:bg-slate-800/50" />
+        ) : (
+          <div className="flex h-48 items-end justify-between gap-3 pt-6 pb-2">
+            {data.map((item, idx) => {
+              const heightPercent = Math.round((item.hours / maxVal) * 100);
+              return (
+                <div
+                  key={idx}
+                  className="group relative flex flex-1 flex-col items-center"
+                >
+                  <div className="pointer-events-none absolute -top-9 opacity-0 transition group-hover:opacity-100">
+                    <span className="rounded-md bg-slate-900 px-2 py-1 text-[11px] font-bold text-white shadow-md dark:bg-slate-100 dark:text-slate-900">
+                      {item.hours}h ({item.tasks} tasks)
+                    </span>
+                  </div>
+
+                  <div className="relative flex h-40 w-full items-end justify-center rounded-xl bg-slate-100/60 p-1.5 dark:bg-slate-800/50">
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className="w-full max-w-[32px] rounded-lg bg-gradient-to-t from-indigo-600 to-blue-500 shadow-2xs transition-all duration-300 group-hover:brightness-110"
+                    />
+                  </div>
+
+                  <span className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
+                    {item.label}
                   </span>
                 </div>
-
-                <div className="relative flex h-40 w-full items-end justify-center rounded-xl bg-slate-100/60 p-1.5 dark:bg-slate-800/50">
-                  <div
-                    style={{ height: `${heightPercent}%` }}
-                    className="w-full max-w-[32px] rounded-lg bg-gradient-to-t from-indigo-600 to-blue-500 shadow-2xs transition-all duration-300 group-hover:brightness-110"
-                  />
-                </div>
-
-                <span className="mt-2 text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  {item.label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
