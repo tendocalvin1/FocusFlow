@@ -59,10 +59,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'accounts',
     'rest_framework.authtoken',
-    'drf_spectacular'
+    'drf_spectacular',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware'
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -115,6 +117,9 @@ DATABASES = {
         ssl_require=True,
     )
 }
+
+CORS_ALLOWED_ORIGINS = ["http://localhost:5173"]
+CORS_ALLOW_CREDENTIALS = True
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
