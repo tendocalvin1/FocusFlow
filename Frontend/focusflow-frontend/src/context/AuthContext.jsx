@@ -1,16 +1,11 @@
 import * as React from "react";
-import {
-  login as apiLogin,
-  register as apiRegister,
-  logout as apiLogout,
-  refreshToken as apiRefreshToken,
-  getCurrentUser as apiGetCurrentUser,
+import { useNavigate } from "react-router-dom";
+
+import {login as apiLogin,register as apiRegister,logout as apiLogout,refreshToken as apiRefreshToken,
+getCurrentUser as apiGetCurrentUser
 } from "@/services/authService";
-import {
-  clearTokens,
-  getAccessToken,
-  getRefreshToken,
-} from "@/services/api";
+
+import {clearTokens,getAccessToken,getRefreshToken} from "@/services/api";
 
 const AuthContext = React.createContext(null);
 
@@ -19,41 +14,39 @@ function hasTokens() {
 }
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
+
   const [user, setUser] = React.useState(null);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+
   const [isLoading, setIsLoading] = React.useState(true);
   const [loginLoading, setLoginLoading] = React.useState(false);
   const [registerLoading, setRegisterLoading] = React.useState(false);
 
   const handleLogout = React.useCallback(() => {
+    clearTokens();
     setUser(null);
     setIsAuthenticated(false);
-    clearTokens();
-    localStorage.removeItem("focusflow_user");
   }, []);
 
   const restoreSession = React.useCallback(async () => {
     if (!hasTokens()) {
       return;
     }
+
     try {
-      const current = await apiGetCurrentUser();
-      if (current) {
-        setUser(current);
-        setIsAuthenticated(true);
-      } else {
-        handleLogout();
-      }
+      const currentUser = await apiGetCurrentUser();
+
+      setUser(currentUser);
+      setIsAuthenticated(true);
     } catch {
       try {
         await apiRefreshToken();
-        const current = await apiGetCurrentUser();
-        if (current) {
-          setUser(current);
-          setIsAuthenticated(true);
-        } else {
-          handleLogout();
-        }
+
+        const currentUser = await apiGetCurrentUser();
+
+        setUser(currentUser);
+        setIsAuthenticated(true);
       } catch {
         handleLogout();
       }
@@ -62,45 +55,64 @@ export function AuthProvider({ children }) {
 
   React.useEffect(() => {
     let mounted = true;
-    const done = () => {
-      if (mounted) setIsLoading(false);
-    };
-    queueMicrotask(() => {
-      restoreSession().then(done, done);
+
+    restoreSession().finally(() => {
+      if (mounted) {
+        setIsLoading(false);
+      }
     });
 
-    const onAuthLogout = () => {
+    const onForcedLogout = () => {
       handleLogout();
-      if (window.location.pathname !== "/login") {
-        const current = new URL(window.location.href);
-        const redirect =
-          current.pathname === "/"
-            ? ""
-            : `?next=${encodeURIComponent(current.pathname + current.search)}`;
-        window.location.replace(`/login${redirect}`);
-      }
+
+      navigate("/login", {
+        replace: true,
+      });
     };
-    window.addEventListener("focusflow:auth:logout", onAuthLogout);
+
+    window.addEventListener("focusflow:auth:logout", onForcedLogout);
+
     return () => {
       mounted = false;
-      window.removeEventListener("focusflow:auth:logout", onAuthLogout);
+      window.removeEventListener(
+        "focusflow:auth:logout",
+        onForcedLogout
+      );
     };
-  }, [handleLogout, restoreSession]);
+  }, [restoreSession, handleLogout, navigate]);
+
+  React.useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      navigate("/login", {
+        replace: true,
+      });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
 
   const login = React.useCallback(async (email, password) => {
     setLoginLoading(true);
+
     try {
       const result = await apiLogin(email, password);
-      if (result?.user) setUser(result.user);
+
+      if (result?.user) {
+        setUser(result.user);
+      }
+
       setIsAuthenticated(true);
-      return { success: true };
+
+      return {
+        success: true,
+      };
     } catch (err) {
-      const msg =
+      const wrapped = new Error(
         err?.message ||
-        "Invalid credentials. Please check your login details.";
-      const wrapped = new Error(msg);
-      wrapped.code = err?.code || "login_failed";
-      wrapped.fields = err?.fields || null;
+          "Invalid credentials. Please try again."
+      );
+
+      wrapped.code = err?.code;
+      wrapped.fields = err?.fields;
+
       throw wrapped;
     } finally {
       setLoginLoading(false);
@@ -109,17 +121,28 @@ export function AuthProvider({ children }) {
 
   const register = React.useCallback(async (name, email, password) => {
     setRegisterLoading(true);
+
     try {
       const result = await apiRegister(name, email, password);
-      if (result?.user) setUser(result.user);
+
+      if (result?.user) {
+        setUser(result.user);
+      }
+
       setIsAuthenticated(true);
-      return { success: true };
+
+      return {
+        success: true,
+      };
     } catch (err) {
-      const msg =
-        err?.message || "Registration failed. Please try again.";
-      const wrapped = new Error(msg);
-      wrapped.code = err?.code || "register_failed";
-      wrapped.fields = err?.fields || null;
+      const wrapped = new Error(
+        err?.message ||
+          "Registration failed."
+      );
+
+      wrapped.code = err?.code;
+      wrapped.fields = err?.fields;
+
       throw wrapped;
     } finally {
       setRegisterLoading(false);
@@ -130,30 +153,44 @@ export function AuthProvider({ children }) {
     try {
       await apiLogout();
     } catch {
-      /* ignore */
+      // Ignore backend failures during logout.
     }
-    handleLogout();
-  }, [handleLogout]);
 
-  const refreshToken = React.useCallback(async () => {
+    handleLogout();
+
+    navigate("/login", {
+      replace: true,
+    });
+  }, [handleLogout, navigate]);
+
+  const refreshToken = React.useCallback(() => {
     return apiRefreshToken();
   }, []);
 
-  const getCurrentUser = React.useCallback(async () => {
+  const getCurrentUser = React.useCallback(() => {
     return apiGetCurrentUser();
   }, []);
 
   const value = React.useMemo(
     () => ({
       user,
+
       isAuthenticated,
+
       isLoading,
+
       loginLoading,
+
       registerLoading,
+
       login,
+
       register,
+
       logout,
+
       refreshToken,
+
       getCurrentUser,
     }),
     [
@@ -171,14 +208,20 @@ export function AuthProvider({ children }) {
   );
 
   return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
   const context = React.useContext(AuthContext);
+
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error(
+      "useAuth must be used inside an AuthProvider."
+    );
   }
+
   return context;
 }
