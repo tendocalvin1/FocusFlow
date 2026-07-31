@@ -38,10 +38,29 @@ export default function UserMenu() {
       );
   }, []);
 
-  function handleLogout() {
-    logout();
+  const displayName =
+    `${user?.first_name || ""} ${user?.last_name || ""}`.trim() ||
+    user?.username ||
+    "FocusFlow User";
 
-    navigate("/login");
+  const initials = displayName
+    .split(" ")
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+
+  async function handleLogout() {
+    try {
+      setOpen(false);
+
+      await logout();
+
+      navigate("/login", {
+        replace: true,
+      });
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   }
 
   return (
@@ -54,32 +73,19 @@ export default function UserMenu() {
         className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-100"
       >
         <Avatar>
-
           <AvatarFallback className="bg-slate-900 text-white">
-
-            {user?.name
-              ?.split(" ")
-              .map((word) => word[0])
-              .join("")}
-
+            {initials}
           </AvatarFallback>
-
         </Avatar>
 
         <div className="hidden text-left md:block">
-
           <p className="text-sm font-semibold">
-
-            {user?.name}
-
+            {displayName}
           </p>
 
           <p className="text-xs text-slate-500">
-
-            {user?.role}
-
+            @{user?.username}
           </p>
-
         </div>
 
         <ChevronDown
@@ -94,19 +100,13 @@ export default function UserMenu() {
         <div className="absolute right-0 mt-3 w-72 rounded-2xl border bg-white shadow-xl">
 
           <div className="border-b p-5">
-
             <p className="font-semibold">
-
-              {user?.name}
-
+              {displayName}
             </p>
 
             <p className="mt-1 text-sm text-slate-500">
-
               {user?.email}
-
             </p>
-
           </div>
 
           <button
@@ -117,9 +117,7 @@ export default function UserMenu() {
             className="flex w-full items-center gap-3 px-5 py-3 text-sm hover:bg-slate-50"
           >
             <User size={18} />
-
             My Profile
-
           </button>
 
           <button
@@ -130,9 +128,7 @@ export default function UserMenu() {
             className="flex w-full items-center gap-3 px-5 py-3 text-sm hover:bg-slate-50"
           >
             <Settings size={18} />
-
             Settings
-
           </button>
 
           <hr />
@@ -142,9 +138,7 @@ export default function UserMenu() {
             className="flex w-full items-center gap-3 px-5 py-3 text-sm text-red-600 hover:bg-red-50"
           >
             <LogOut size={18} />
-
             Logout
-
           </button>
 
         </div>
