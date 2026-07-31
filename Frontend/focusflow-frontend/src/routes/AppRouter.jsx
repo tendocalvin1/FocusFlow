@@ -33,8 +33,8 @@ function NotFound() {
 
 export default function AppRoutes() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
         <Routes>
           <Route path="/landing" element={<Landing />} />
 
@@ -75,7 +75,7 @@ export default function AppRoutes() {
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
