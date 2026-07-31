@@ -1,11 +1,17 @@
 import * as React from "react";
-import { useNavigate } from "react-router-dom";
-
-import {login as apiLogin,register as apiRegister,logout as apiLogout,refreshToken as apiRefreshToken,
-getCurrentUser as apiGetCurrentUser
+import {
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  refreshToken as apiRefreshToken,
+  getCurrentUser as apiGetCurrentUser,
 } from "@/services/authService";
 
-import {clearTokens,getAccessToken,getRefreshToken} from "@/services/api";
+import {
+  clearTokens,
+  getAccessToken,
+  getRefreshToken,
+} from "@/services/api";
 
 const AuthContext = React.createContext(null);
 
@@ -14,8 +20,6 @@ function hasTokens() {
 }
 
 export function AuthProvider({ children }) {
-  const navigate = useNavigate();
-
   const [user, setUser] = React.useState(null);
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
@@ -62,32 +66,10 @@ export function AuthProvider({ children }) {
       }
     });
 
-    const onForcedLogout = () => {
-      handleLogout();
-
-      navigate("/login", {
-        replace: true,
-      });
-    };
-
-    window.addEventListener("focusflow:auth:logout", onForcedLogout);
-
     return () => {
       mounted = false;
-      window.removeEventListener(
-        "focusflow:auth:logout",
-        onForcedLogout
-      );
     };
-  }, [restoreSession, handleLogout, navigate]);
-
-  React.useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate("/login", {
-        replace: true,
-      });
-    }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [restoreSession]);
 
   const login = React.useCallback(async (email, password) => {
     setLoginLoading(true);
@@ -101,13 +83,10 @@ export function AuthProvider({ children }) {
 
       setIsAuthenticated(true);
 
-      return {
-        success: true,
-      };
+      return { success: true };
     } catch (err) {
       const wrapped = new Error(
-        err?.message ||
-          "Invalid credentials. Please try again."
+        err?.message || "Invalid credentials. Please try again."
       );
 
       wrapped.code = err?.code;
@@ -131,13 +110,10 @@ export function AuthProvider({ children }) {
 
       setIsAuthenticated(true);
 
-      return {
-        success: true,
-      };
+      return { success: true };
     } catch (err) {
       const wrapped = new Error(
-        err?.message ||
-          "Registration failed."
+        err?.message || "Registration failed."
       );
 
       wrapped.code = err?.code;
@@ -153,15 +129,11 @@ export function AuthProvider({ children }) {
     try {
       await apiLogout();
     } catch {
-      // Ignore backend failures during logout.
+      // Ignore API errors during logout.
     }
 
     handleLogout();
-
-    navigate("/login", {
-      replace: true,
-    });
-  }, [handleLogout, navigate]);
+  }, [handleLogout]);
 
   const refreshToken = React.useCallback(() => {
     return apiRefreshToken();
@@ -174,23 +146,14 @@ export function AuthProvider({ children }) {
   const value = React.useMemo(
     () => ({
       user,
-
       isAuthenticated,
-
       isLoading,
-
       loginLoading,
-
       registerLoading,
-
       login,
-
       register,
-
       logout,
-
       refreshToken,
-
       getCurrentUser,
     }),
     [
@@ -218,9 +181,7 @@ export function useAuth() {
   const context = React.useContext(AuthContext);
 
   if (!context) {
-    throw new Error(
-      "useAuth must be used inside an AuthProvider."
-    );
+    throw new Error("useAuth must be used inside an AuthProvider.");
   }
 
   return context;
