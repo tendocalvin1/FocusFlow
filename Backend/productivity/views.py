@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 
 # Create your views here.
 
-
+# These are the main Rest APIs for focus flow
 # APIs for goals
 @extend_schema_view(
     get=extend_schema(summary="Retrieve-all-goals",responses=GoalSerializer(many=True)),
