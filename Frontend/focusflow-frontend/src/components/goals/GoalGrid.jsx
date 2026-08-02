@@ -1,81 +1,50 @@
+import { useEffect, useState } from "react";
 import GoalCard from "./GoalCard";
-
-const goals = [
-
-    {
-
-        id:1,
-
-        title:"Become Backend Engineer",
-
-        description:"Master Django, FastAPI and PostgreSQL.",
-
-        progress:68,
-
-        deadline:"Dec 2026",
-
-        priority:"High",
-
-    },
-
-    {
-
-        id:2,
-
-        title:"Launch FocusFlow",
-
-        description:"Ship production MVP.",
-
-        progress:52,
-
-        deadline:"Aug 2026",
-
-        priority:"Medium",
-
-    },
-
-    {
-
-        id:3,
-
-        title:"10k LinkedIn Followers",
-
-        description:"Build engineering brand.",
-
-        progress:25,
-
-        deadline:"2027",
-
-        priority:"Low",
-
-    }
-
-];
+import { goalsService } from "@/services/goalsService";
 
 export default function GoalGrid() {
+    const [goals, setGoals] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        loadGoals();
+    }, []);
+
+    async function loadGoals() {
+        try {
+            const data = await goalsService.getGoals();
+            setGoals(data);
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    if (loading) {
+        return (
+            <p className="text-slate-500">
+                Loading goals...
+            </p>
+        );
+    }
+
+    if (!goals.length) {
+        return (
+            <p className="text-slate-500">
+                No goals yet.
+            </p>
+        );
+    }
 
     return (
-
         <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-
-            {
-
-                goals.map(goal=>(
-
-                    <GoalCard
-
-                        key={goal.id}
-
-                        {...goal}
-
-                    />
-
-                ))
-
-            }
-
+            {goals.map((goal) => (
+                <GoalCard
+                    key={goal.id}
+                    {...goal}
+                />
+            ))}
         </div>
-
     );
-
 }

@@ -213,7 +213,7 @@ def streaks_view(request):
     if streak.last_evaluated_date == yesterday:
         serializer = StreakSerializer(streak)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    yesterday_goals = Goal.objects.filter(user=user,goal_date=yesterday)
+    yesterday_goals = Goal.objects.filter(user=user,target_date=yesterday)
 
     if yesterday_goals.exists():
         all_completed = not yesterday_goals.filter(completed=False).exists()
