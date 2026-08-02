@@ -1,50 +1,36 @@
-import { useEffect, useState } from "react";
 import GoalCard from "./GoalCard";
-import { goalsService } from "@/services/goalsService";
 
-export default function GoalGrid() {
-    const [goals, setGoals] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        loadGoals();
-    }, []);
-
-    async function loadGoals() {
-        try {
-            const data = await goalsService.getGoals();
-            setGoals(data);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    }
-
-    if (loading) {
-        return (
-            <p className="text-slate-500">
-                Loading goals...
-            </p>
-        );
-    }
-
-    if (!goals.length) {
-        return (
-            <p className="text-slate-500">
-                No goals yet.
-            </p>
-        );
-    }
-
+export default function GoalGrid({
+  goals,
+  onSelectGoal,
+}) {
+  if (!goals.length) {
     return (
-        <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
-            {goals.map((goal) => (
-                <GoalCard
-                    key={goal.id}
-                    {...goal}
-                />
-            ))}
-        </div>
+      <div className="rounded-xl border border-dashed border-slate-300 p-10 text-center">
+
+        <h2 className="text-lg font-semibold text-slate-700">
+          No goals found
+        </h2>
+
+        <p className="mt-2 text-sm text-slate-500">
+          Create your first goal to begin tracking your progress.
+        </p>
+
+      </div>
     );
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+
+      {goals.map((goal) => (
+        <GoalCard
+          key={goal.id}
+          goal={goal}
+          onSelect={onSelectGoal}
+        />
+      ))}
+
+    </div>
+  );
 }

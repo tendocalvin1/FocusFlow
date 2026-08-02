@@ -1,72 +1,37 @@
-import { mockGoals } from "@/data/mockGoals";
-
-const delay = (data, ms = 150) =>
-  new Promise((resolve) => setTimeout(() => resolve(data), ms));
-
-const clone = (obj) => JSON.parse(JSON.stringify(obj));
+import api from "@/services/api";
 
 export const goalsService = {
-  getGoals: async (filters = {}) => {
-    let result = clone(mockGoals);
-    if (filters?.category && filters.category !== "All") {
-      result = result.filter((g) => g.category === filters.category);
-    }
-    if (filters?.status && filters.status !== "All") {
-      result = result.filter((g) => g.status === filters.status);
-    }
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
-      result = result.filter(
-        (g) =>
-          g.title.toLowerCase().includes(q) ||
-          g.description.toLowerCase().includes(q)
-      );
-    }
-    return delay(result);
+  // Get all goals
+  async getGoals() {
+    const response = await api.get("/productivity/goals/");
+    return response.data;
   },
 
-  getGoalById: async (id) => {
-    const goal = mockGoals.find((g) => g.id === id);
-    return delay(goal ? clone(goal) : null);
+  // Get one goal
+  async getGoalById(id) {
+    const response = await api.get(`/productivity/goals/${id}/`);
+    return response.data;
   },
 
-  createGoal: async (payload) => {
-    const newGoal = {
-      id: Date.now(),
-      progress: 0,
-      status: "in_progress",
-      sub_goals: [],
-      ...payload,
-    };
-    mockGoals.unshift(newGoal);
-    return delay(clone(newGoal), 100);
+  // Create goal
+  async createGoal(goalData) {
+    const response = await api.post("/productivity/goals/", goalData);
+    return response.data;
   },
 
-  updateGoal: async (id, payload) => {
-    const idx = mockGoals.findIndex((g) => g.id === id);
-    if (idx === -1) return delay(null);
-    mockGoals[idx] = { ...mockGoals[idx], ...payload };
-    return delay(clone(mockGoals[idx]), 100);
+  // Update goal
+  async updateGoal(id, goalData) {
+    const response = await api.put(
+      `/productivity/goals/${id}/`,
+      goalData
+    );
+
+    return response.data;
   },
 
-  deleteGoal: async (id) => {
-    const idx = mockGoals.findIndex((g) => g.id === id);
-    if (idx === -1) return delay(false);
-    mockGoals.splice(idx, 1);
-    return delay(true, 100);
-  },
-
-  updateSubGoal: async (goalId, subGoalId, patch) => {
-    const goal = mockGoals.find((g) => g.id === goalId);
-    if (!goal) return delay(null);
-    const subIdx = goal.sub_goals.findIndex((s) => s.id === subGoalId);
-    if (subIdx === -1) return delay(null);
-    goal.sub_goals[subIdx] = { ...goal.sub_goals[subIdx], ...patch };
-    const completedCount = goal.sub_goals.filter((s) => s.completed).length;
-    goal.progress = goal.sub_goals.length
-      ? Math.round((completedCount / goal.sub_goals.length) * 100)
-      : 0;
-    if (goal.progress === 100) goal.status = "completed";
-    return delay(clone(goal), 100);
+  // Delete goal
+  async deleteGoal(id) {
+    await api.delete(`/productivity/goals/${id}/`);
+    return true;
   },
 };
