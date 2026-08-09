@@ -3,7 +3,7 @@ import axios from "axios";
 export const TOKEN_ACCESS_KEY = "focusflow_access";
 export const TOKEN_REFRESH_KEY = "focusflow_refresh";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const REQUEST_TIMEOUT_MS = 30000;
 
 export const getAccessToken = () => localStorage.getItem(TOKEN_ACCESS_KEY);
