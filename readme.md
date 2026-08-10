@@ -723,11 +723,11 @@ This project is currently available for development and portfolio purposes.
 
 **Tendo Calvin**
 
-Backend-focused Full-Stack Software Engineer
+Full-Stack Software Engineer
 
 * GitHub: [@tendocalvin1](https://github.com/tendocalvin1)
 * LinkedIn: Tendo Calvin
-* Based in Uganda 🇺🇬
+* Based in Uganda
 
 ---
 

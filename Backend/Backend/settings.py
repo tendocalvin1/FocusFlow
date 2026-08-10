@@ -73,13 +73,27 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    'productivity',
-    'rest_framework',
-    'rest_framework_simplejwt',
-    'accounts',
-    'rest_framework.authtoken',
-    'drf_spectacular',
-    'corsheaders'
+
+    # Third-party
+    "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework.authtoken",
+    "drf_spectacular",
+    "corsheaders",
+
+    # django-allauth
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.headless",
+
+    # OAuth providers
+    "allauth.socialaccount.providers.google",
+    "allauth.socialaccount.providers.github",
+
+    # Local apps
+    "productivity",
+    "accounts"
 ]
 
 MIDDLEWARE = [
@@ -90,6 +104,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.auth.middleware.RemoteUserMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -128,6 +143,38 @@ WSGI_APPLICATION = "Backend.wsgi.application"
 #         "PORT": os.getenv("DB_PORT"),
 #     }
 # }
+
+
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "password1*",
+    "password2*",
+]
+
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_AUTO_SIGNUP = True
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": [
+            "openid",
+            "profile",
+            "email",
+        ],
+        "AUTH_PARAMS": {
+            "access_type": "online",
+        },
+        "OAUTH_PKCE_ENABLED": True,
+    },
+
+    "github": {
+        "SCOPE": [
+            "read:user",
+            "user:email",
+        ],
+    },
+}
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
@@ -180,6 +227,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://focus-flow-bay-zeta.vercel.app"
 ]
+
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
 
 
 
