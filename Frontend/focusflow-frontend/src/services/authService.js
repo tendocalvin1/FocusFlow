@@ -148,6 +148,6 @@ export async function verifyToken() {
 }
 
 export async function getCurrentUser() {
-  const res = await api.get("/api/profile/");
+  const res = await api.get("/api/auth/profile/");
   return normalizeUser(res.data);
 }
