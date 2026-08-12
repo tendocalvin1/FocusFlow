@@ -92,26 +92,20 @@ The streak system is designed to evaluate completion at the appropriate point in
 
 ### 🔐 Authentication & Authorization
 
-FocusFlow uses JWT-based authentication to secure its API.
+FocusFlow uses JWT-based authentication alongside `django-allauth` for Google OAuth/SSO integration.
 
 Implemented authentication capabilities include:
 
 * User registration
-* JWT login
-* Access tokens
-* Refresh tokens
-* Token verification
-* Token refresh
-* Authenticated API requests
-* Protected endpoints
-* User-specific data access
-* Logout through refresh-token blacklisting
-* Password change
-* Profile access
-
-The frontend stores the authentication tokens locally and automatically attaches the access token to authenticated API requests.
-
-The frontend API client also implements automatic access-token refresh when an authenticated request returns a `401 Unauthorized` response.
+* JWT login (`/api/token/`)
+* Google OAuth / SSO (`/accounts/google/login/`)
+* Headless SSO REST API (`/_allauth/browser/v1/auth/provider/redirect`)
+* Access tokens & Refresh tokens
+* Token verification & Token refresh
+* Authenticated API requests with DRF `IsAuthenticated` permissions
+* Protected endpoints across Goals, Tasks, Focus Sessions, Streaks
+* Password change & Profile access
+* Idempotent Django management command `setup_social_apps` for Site & SocialApp configuration
 
 ---
 

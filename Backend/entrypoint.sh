@@ -9,6 +9,9 @@ echo "=================================="
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
+echo "Setting up Social Apps & Sites..."
+python manage.py setup_social_apps
+
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
 
