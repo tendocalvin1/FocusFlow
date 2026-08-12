@@ -27,7 +27,7 @@ class GoalAPITestCase(APITestCase):
             user = self.user,
             title = "Software engineer",
             description = "Build and maintain web and mobile applications",
-            goal_date = date.today()
+            target_date = date.today()
         )
 
 
@@ -51,7 +51,7 @@ class GoalAPITestCase(APITestCase):
             "user" : 1,
             "title" : "Learn DevOps",
             "description" : "Containerisation",
-            "goal_date": str(date.today()),
+            "target_date": str(date.today()),
             "completed" : False
         }
         
@@ -67,7 +67,7 @@ class GoalAPITestCase(APITestCase):
     def test_create_goal_without_title(self):
         data = {
             'description' : 'Missing title',
-            'goal_date' : str(date.today()),
+            'target_date' : str(date.today()),
             'completed' : False
         }
         response = self.client.post(reverse('goals-view'), data, format='json')
@@ -89,7 +89,7 @@ class TaskAPITestCase(APITestCase):
             user =self.user,
             title = "Become Software Engineer",
             description = "Master system design and containerisation",
-            goal_date = date.today()
+            target_date = date.today()
         ) 
         
         # existing task
@@ -116,7 +116,7 @@ class TaskAPITestCase(APITestCase):
             description = "Not for everyone",
             # priority = "high",
             # completed = True,
-            goal_date = date.today()
+            target_date = date.today()
             
         )
         
@@ -232,7 +232,7 @@ class FocusSessionAPITestCase(APITestCase):
             user=self.user,
             title="Backend Engineer",
             description="Learn DRF",
-            goal_date=date.today()
+            target_date=date.today()
         )
 
         # Task
@@ -264,7 +264,7 @@ class FocusSessionAPITestCase(APITestCase):
             user=self.other_user,
             title="Private Goal",
             description="Private",
-            goal_date=date.today()
+            target_date=date.today()
         )
 
         self.other_task = Task.objects.create(
