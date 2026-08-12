@@ -81,6 +81,9 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
 
+    # Django Sites
+    "django.contrib.sites",
+    
     # django-allauth
     "allauth",
     "allauth.account",
@@ -95,6 +98,8 @@ INSTALLED_APPS = [
     "productivity",
     "accounts"
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -227,6 +232,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "https://focus-flow-bay-zeta.vercel.app"
 ]
+
 
 FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
