@@ -60,10 +60,12 @@ export function AuthProvider({ children }) {
   React.useEffect(() => {
     let mounted = true;
 
-    restoreSession().finally(() => {
-      if (mounted) {
-        setIsLoading(false);
-      }
+    queueMicrotask(() => {
+      restoreSession().finally(() => {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      });
     });
 
     return () => {
@@ -155,6 +157,8 @@ export function AuthProvider({ children }) {
       logout,
       refreshToken,
       getCurrentUser,
+      setUser,
+      setIsAuthenticated,
     }),
     [
       user,

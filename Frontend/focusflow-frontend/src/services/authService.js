@@ -106,12 +106,12 @@ export async function logout() {
     if (refresh) {
       await api.post("/api/token/refresh/", { refresh });
     }
-  } catch (_) {
+  } catch {
     /* ignore */
   }
   try {
     await api.post("/api/auth/logout/");
-  } catch (_) {
+  } catch {
       /* ignore */
     }
   clearTokens();
