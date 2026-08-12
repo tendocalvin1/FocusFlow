@@ -11,6 +11,7 @@ import Login from "../pages/Login/Login";
 import Register from "../pages/Register/Register";
 import ForgotPassword from "../pages/Login/ForgotPassword";
 import ResetPassword from "../pages/Login/ResetPassword";
+import OAuthCallback from "../pages/Login/OAuthCallback";
 import Landing from "../pages/Landing/Landing";
 import MainLayout from "../layouts/MainLayout";
 import Profile from "../pages/Profile/Profile";
@@ -56,6 +57,7 @@ export default function AppRoutes() {
           />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/oauth/callback" element={<OAuthCallback />} />
 
           <Route
             element={

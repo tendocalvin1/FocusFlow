@@ -1,9 +1,14 @@
+from urllib.parse import urlencode
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from rest_framework.response import Response
 from .serialisers import *
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from django.conf import settings
+from django.shortcuts import redirect
+from django.contrib.auth import logout as django_logout
+from rest_framework_simplejwt.tokens import RefreshToken
 
 
 # Create your views here.
@@ -38,6 +43,7 @@ def profile_view(request):
 
         
 
+
 """
     changing the password of the user
 """
@@ -62,7 +68,7 @@ def change_password_view(request):
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-    
+
 
 
 """
@@ -73,3 +79,36 @@ def change_password_view(request):
 @permission_classes([IsAuthenticated])
 def logout_view(request):
         return Response({"message": "Logout successful"}, status=status.HTTP_200_OK)
+
+
+@extend_schema(exclude=True)
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def social_login_complete_view(request):
+    """
+    After django-allauth completes Google/GitHub OAuth (Django session is now
+    authenticated), bridge the authenticated session into JWT tokens and
+    redirect the browser back to the frontend SPA.
+    """
+    user = getattr(request, "user", None)
+    frontend = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
+    target = f"{frontend}/oauth/callback"
+
+    if not user or not user.is_authenticated:
+        return redirect(f"{target}?error=unauthenticated")
+
+    refresh = RefreshToken.for_user(user)
+    access = refresh.access_token
+
+    params = {
+        "access": str(access),
+        "refresh": str(refresh),
+    }
+
+    try:
+        django_logout(request)
+    except Exception:
+        pass
+
+    sep = "&" if "?" in target else "?"
+    return redirect(f"{target}{sep}{urlencode(params)}")

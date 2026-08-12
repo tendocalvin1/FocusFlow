@@ -23,6 +23,7 @@ from rest_framework_simplejwt.views import (TokenObtainPairView, TokenRefreshVie
 from rest_framework_simplejwt.views import TokenVerifyView
 from drf_spectacular.views import (SpectacularAPIView, SpectacularSwaggerView)
 from Backend.views import home
+from accounts.views import social_login_complete_view
 
 # url patterns are used to show the different end points for the focusflow app
 # backend engineering using django
@@ -34,6 +35,7 @@ urlpatterns = [
     path("api/auth/", include("accounts.urls")),
     path("accounts/", include("allauth.urls")),
     path("_allauth/", include("allauth.headless.urls")),
+    path("_auth/social/complete/", social_login_complete_view, name="social_login_complete"),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),

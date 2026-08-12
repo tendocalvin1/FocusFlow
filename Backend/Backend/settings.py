@@ -156,9 +156,15 @@ ACCOUNT_SIGNUP_FIELDS = [
     "password1*",
     "password2*",
 ]
+ACCOUNT_ADAPTER = "accounts.adapters.FocusFlowAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.FocusFlowSocialAccountAdapter"
 
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
+
+LOGIN_URL = "/login/"
+LOGIN_REDIRECT_URL = "/_auth/social/complete/"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
