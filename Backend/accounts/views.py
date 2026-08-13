@@ -8,6 +8,10 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from django.conf import settings
 from django.shortcuts import redirect
 from rest_framework_simplejwt.tokens import RefreshToken
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 # Create your views here.
@@ -92,6 +96,12 @@ def social_login_complete_view(request):
     user = getattr(request, "user", None)
     frontend = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
     target = f"{frontend}/oauth/callback"
+    logger.info(
+        "OAuth JWT bridge reached: authenticated=%s frontend_configured=%s user_id=%s",
+        bool(user and user.is_authenticated),
+        bool(frontend),
+        getattr(user, "id", None) if user and user.is_authenticated else None,
+    )
 
     def _redirect_to_spa(query=None):
         if query:
@@ -100,6 +110,7 @@ def social_login_complete_view(request):
         return redirect(target)
 
     if not user or not user.is_authenticated:
+        logger.warning("OAuth JWT bridge reached without an authenticated user.")
         return _redirect_to_spa({"error": "unauthenticated"})
 
     refresh = RefreshToken.for_user(user)
@@ -125,4 +136,5 @@ def social_login_complete_view(request):
     except Exception:
         pass
 
+    logger.info("OAuth JWT bridge minted tokens for user_id=%s", user.id)
     return _redirect_to_spa(params)

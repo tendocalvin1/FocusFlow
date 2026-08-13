@@ -32,6 +32,10 @@ function onRefreshed(accessToken) {
 }
 
 export function buildAuthError(axiosError) {
+  if (axiosError?.code && typeof axiosError?.status === "number") {
+    return axiosError;
+  }
+
   const details =
     axiosError?.response?.data?.detail ||
     (axiosError?.response?.data &&

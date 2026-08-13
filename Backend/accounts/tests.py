@@ -1,7 +1,14 @@
 from django.urls import reverse
+from django.core.management import call_command
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.auth.models import User
+from django.contrib.sites.models import Site
+from django.test import override_settings
 from rest_framework import status
 from rest_framework.test import APITestCase
+from allauth.socialaccount.models import SocialApp
+from io import StringIO
+from unittest.mock import patch
 
 # writing unit tests for the focus flow application
 
@@ -303,6 +310,139 @@ class SocialLoginCompleteTests(APITestCase):
         response = self.client.get(url)
         self.assertNotIn("GOOGLE_CLIENT", response.get("Location", ""))
         self.assertNotIn("client_secret", str(response.serialize()).lower())
+
+
+class SocialAppConfigurationTests(APITestCase):
+    def _call_setup(self):
+        out = StringIO()
+        call_command("setup_social_apps", stdout=out)
+        return out.getvalue()
+
+    @override_settings(DEBUG=False)
+    @patch.dict(
+        "os.environ",
+        {
+            "DEBUG": "False",
+            "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
+            "GOOGLE_CLIENT_ID": "google-client-id",
+            "GOOGLE_CLIENT_SECRET": "google-client-secret",
+            "GITHUB_CLIENT_ID": "github-client-id",
+            "GITHUB_CLIENT_SECRET": "github-client-secret",
+        },
+        clear=False,
+    )
+    def test_setup_social_apps_creates_site_and_provider_apps(self):
+        self._call_setup()
+
+        site = Site.objects.get(id=1)
+        self.assertEqual(site.domain, "focusflow-3n3u.onrender.com")
+        self.assertEqual(site.name, "focusflow-3n3u.onrender.com")
+
+        google = SocialApp.objects.get(provider="google")
+        github = SocialApp.objects.get(provider="github")
+
+        self.assertEqual(google.client_id, "google-client-id")
+        self.assertTrue(google.secret)
+        self.assertIn(site, google.sites.all())
+
+        self.assertEqual(github.client_id, "github-client-id")
+        self.assertTrue(github.secret)
+        self.assertIn(site, github.sites.all())
+
+    @override_settings(DEBUG=False)
+    @patch.dict(
+        "os.environ",
+        {
+            "DEBUG": "False",
+            "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
+            "GOOGLE_CLIENT_ID": "google-client-id",
+            "GOOGLE_CLIENT_SECRET": "google-client-secret",
+            "GITHUB_CLIENT_ID": "github-client-id",
+            "GITHUB_CLIENT_SECRET": "github-client-secret",
+        },
+        clear=False,
+    )
+    def test_setup_social_apps_is_idempotent(self):
+        self._call_setup()
+        self._call_setup()
+
+        self.assertEqual(SocialApp.objects.filter(provider="google").count(), 1)
+        self.assertEqual(SocialApp.objects.filter(provider="github").count(), 1)
+        self.assertEqual(Site.objects.filter(id=1).count(), 1)
+
+    @override_settings(DEBUG=False)
+    @patch.dict(
+        "os.environ",
+        {
+            "DEBUG": "False",
+            "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
+            "GOOGLE_CLIENT_ID": "",
+            "GOOGLE_CLIENT_SECRET": "",
+            "GITHUB_CLIENT_ID": "github-client-id",
+            "GITHUB_CLIENT_SECRET": "github-client-secret",
+        },
+        clear=False,
+    )
+    def test_setup_social_apps_fails_clearly_for_missing_production_credentials(self):
+        with self.assertRaises(ImproperlyConfigured):
+            self._call_setup()
+
+    @override_settings(DEBUG=True)
+    @patch.dict(
+        "os.environ",
+        {
+            "DEBUG": "True",
+            "SITE_DOMAIN": "localhost",
+            "GOOGLE_CLIENT_ID": "",
+            "GOOGLE_CLIENT_SECRET": "",
+            "GITHUB_CLIENT_ID": "",
+            "GITHUB_CLIENT_SECRET": "",
+        },
+        clear=False,
+    )
+    def test_setup_social_apps_allows_missing_credentials_in_local_debug(self):
+        output = self._call_setup()
+        self.assertIn("required to configure google OAuth", output)
+        self.assertEqual(SocialApp.objects.count(), 0)
+
+    @patch.dict(
+        "os.environ",
+        {
+            "DATABASE_URL": "postgres://user:secret@example/db",
+            "SECRET_KEY": "django-secret",
+            "DEBUG": "False",
+            "FRONTEND_URL": "https://focus-flow-bay-zeta.vercel.app",
+            "GOOGLE_CLIENT_ID": "google-client-id",
+            "GOOGLE_CLIENT_SECRET": "google-client-secret",
+            "GITHUB_CLIENT_ID": "github-client-id",
+            "GITHUB_CLIENT_SECRET": "github-client-secret",
+        },
+        clear=False,
+    )
+    def test_inspect_oauth_config_redacts_sensitive_values(self):
+        site = Site.objects.get(id=1)
+        site.domain = "focusflow-3n3u.onrender.com"
+        site.name = "focusflow-3n3u.onrender.com"
+        site.save()
+        app = SocialApp.objects.create(
+            provider="google",
+            name="FocusFlow Google",
+            client_id="google-client-id",
+            secret="google-client-secret",
+        )
+        app.sites.add(site)
+
+        out = StringIO()
+        call_command("inspect_oauth_config", stdout=out)
+        output = out.getvalue()
+
+        self.assertIn("GOOGLE_CLIENT_ID = configured", output)
+        self.assertIn("GOOGLE_CLIENT_SECRET = configured", output)
+        self.assertIn("provider=google", output)
+        self.assertIn("client_id=configured", output)
+        self.assertIn("secret=configured", output)
+        self.assertNotIn("google-client-secret", output)
+        self.assertNotIn("postgres://user:secret@example/db", output)
 
 
 class JWTRegressionTests(APITestCase):

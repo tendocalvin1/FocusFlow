@@ -1,23 +1,103 @@
 from django.core.management.base import BaseCommand
+from django.core.exceptions import ImproperlyConfigured
 from django.contrib.sites.models import Site
 from allauth.socialaccount.models import SocialApp
 import os
+from urllib.parse import urlparse
+
+
+PROVIDERS = {
+    "google": {
+        "name": "FocusFlow Google",
+        "client_id_env": "GOOGLE_CLIENT_ID",
+        "secret_env": "GOOGLE_CLIENT_SECRET",
+        "required": True,
+    },
+    "github": {
+        "name": "FocusFlow GitHub",
+        "client_id_env": "GITHUB_CLIENT_ID",
+        "secret_env": "GITHUB_CLIENT_SECRET",
+        "required": True,
+    },
+}
+
+
+def _is_truthy(value):
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _site_domain():
+    explicit = os.getenv("SITE_DOMAIN") or os.getenv("DJANGO_SITE_DOMAIN")
+    if explicit:
+        return explicit.strip().removeprefix("https://").removeprefix("http://").strip("/")
+
+    backend_url = (
+        os.getenv("BACKEND_URL")
+        or os.getenv("RENDER_EXTERNAL_URL")
+        or os.getenv("RENDER_EXTERNAL_HOSTNAME")
+    )
+    if backend_url:
+        parsed = urlparse(backend_url if "://" in backend_url else f"https://{backend_url}")
+        return (parsed.netloc or parsed.path).strip("/")
+
+    allowed_hosts = [
+        host.strip()
+        for host in os.getenv("ALLOWED_HOSTS", "").split(",")
+        if host.strip() and host.strip() not in {"*", "localhost", "127.0.0.1"}
+    ]
+    if allowed_hosts:
+        return allowed_hosts[0]
+
+    return "localhost"
+
+
+def _is_production():
+    domain = _site_domain()
+    return (
+        not _is_truthy(os.getenv("DEBUG"))
+        and domain not in {"localhost", "127.0.0.1"}
+    )
+
+
+def _redacted_configured(value):
+    return "configured" if value else "missing"
+
+
+def _provider_app(provider, name, client_id, secret):
+    app = SocialApp.objects.filter(provider=provider, name=name).first()
+    if app:
+        return app, False
+
+    app = SocialApp.objects.filter(provider=provider).first()
+    if app:
+        return app, False
+
+    return SocialApp.objects.create(
+        provider=provider,
+        name=name,
+        client_id=client_id,
+        secret=secret,
+    ), True
+
 
 class Command(BaseCommand):
     help = "Idempotently setup Django Site and OAuth SocialApps using environment variables"
 
     def handle(self, *args, **options):
-        # 1. Site configuration
+        production = _is_production()
+        domain = _site_domain()
+
         site, created = Site.objects.get_or_create(
             id=1,
             defaults={
-                "domain": "localhost",
-                "name": "localhost",
+                "domain": domain,
+                "name": domain,
             }
         )
-        if not created and (site.domain == "example.com" or site.name == "example.com"):
-            site.domain = "localhost"
-            site.name = "localhost"
+
+        if site.domain in {"example.com", "localhost"} or site.name in {"example.com", "localhost"}:
+            site.domain = domain
+            site.name = domain
             site.save()
 
         if created:
@@ -25,56 +105,44 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.SUCCESS(f"Default Site configured (id=1, domain={site.domain})"))
 
-        # 2. Google SocialApp configuration
-        google_client_id = os.getenv("GOOGLE_CLIENT_ID")
-        google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        for provider, config in PROVIDERS.items():
+            client_id = os.getenv(config["client_id_env"])
+            secret = os.getenv(config["secret_env"])
 
-        if google_client_id and google_client_secret:
-            google_app, app_created = SocialApp.objects.get_or_create(
-                provider="google",
-                defaults={
-                    "name": "FocusFlow Google",
-                    "client_id": google_client_id,
-                    "secret": google_client_secret,
-                }
+            self.stdout.write(
+                f"{provider} credentials: "
+                f"{config['client_id_env']}={_redacted_configured(client_id)}, "
+                f"{config['secret_env']}={_redacted_configured(secret)}"
             )
-            if not app_created:
-                google_app.name = "FocusFlow Google"
-                google_app.client_id = google_client_id
-                google_app.secret = google_client_secret
-                google_app.save()
 
-            if site not in google_app.sites.all():
-                google_app.sites.add(site)
+            if not client_id or not secret:
+                message = (
+                    f"{config['client_id_env']} and {config['secret_env']} are required "
+                    f"to configure {provider} OAuth."
+                )
+                if production and config["required"]:
+                    raise ImproperlyConfigured(message)
+                self.stdout.write(self.style.WARNING(message))
+                continue
+
+            app, app_created = _provider_app(
+                provider=provider,
+                name=config["name"],
+                client_id=client_id,
+                secret=secret,
+            )
+
+            app.name = config["name"]
+            app.client_id = client_id
+            app.secret = secret
+            app.save()
+
+            if site not in app.sites.all():
+                app.sites.add(site)
 
             status_str = "created" if app_created else "updated"
-            self.stdout.write(self.style.SUCCESS(f"Google SocialApp {status_str} and associated with Site id=1."))
-        else:
-            self.stdout.write(self.style.WARNING("GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET missing from environment. Skipping Google SocialApp setup."))
-
-        # 3. GitHub SocialApp configuration (optional)
-        github_client_id = os.getenv("GITHUB_CLIENT_ID")
-        github_client_secret = os.getenv("GITHUB_CLIENT_SECRET")
-
-        if github_client_id and github_client_secret:
-            github_app, app_created = SocialApp.objects.get_or_create(
-                provider="github",
-                defaults={
-                    "name": "FocusFlow GitHub",
-                    "client_id": github_client_id,
-                    "secret": github_client_secret,
-                }
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{provider.title()} SocialApp {status_str} and associated with Site id=1."
+                )
             )
-            if not app_created:
-                github_app.name = "FocusFlow GitHub"
-                github_app.client_id = github_client_id
-                github_app.secret = github_client_secret
-                github_app.save()
-
-            if site not in github_app.sites.all():
-                github_app.sites.add(site)
-
-            status_str = "created" if app_created else "updated"
-            self.stdout.write(self.style.SUCCESS(f"GitHub SocialApp {status_str} and associated with Site id=1."))
-        else:
-            self.stdout.write(self.style.NOTICE("GitHub OAuth credentials not found in environment. Provider installed."))
