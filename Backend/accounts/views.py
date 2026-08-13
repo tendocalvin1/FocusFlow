@@ -89,7 +89,7 @@ def logout_view(request):
 @permission_classes([AllowAny])
 def social_login_complete_view(request):
     """
-    After django-allauth completes Google/GitHub OAuth (Django session is now
+    After django-allauth completes Google OAuth (Django session is now
     authenticated), bridge the authenticated session into JWT tokens and
     redirect the browser back to the frontend SPA.
     """
