@@ -7,7 +7,6 @@ from .serialisers import *
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from django.conf import settings
 from django.shortcuts import redirect
-from django.contrib.auth import logout as django_logout
 from rest_framework_simplejwt.tokens import RefreshToken
 
 
@@ -94,8 +93,14 @@ def social_login_complete_view(request):
     frontend = getattr(settings, "FRONTEND_URL", "http://localhost:5173").rstrip("/")
     target = f"{frontend}/oauth/callback"
 
+    def _redirect_to_spa(query=None):
+        if query:
+            sep = "&" if "?" in target else "?"
+            return redirect(f"{target}{sep}{urlencode(query, doseq=False)}")
+        return redirect(target)
+
     if not user or not user.is_authenticated:
-        return redirect(f"{target}?error=unauthenticated")
+        return _redirect_to_spa({"error": "unauthenticated"})
 
     refresh = RefreshToken.for_user(user)
     access = refresh.access_token
@@ -105,10 +110,19 @@ def social_login_complete_view(request):
         "refresh": str(refresh),
     }
 
+    # Best-effort cleanup of allauth temp session marker (not strictly
+    # required, since session cookie is backend-only and SPA lives on a
+    # different origin).
+    for _key in ("socialaccount_sociallogin",):
+        try:
+            if _key in request.session:
+                del request.session[_key]
+        except Exception:
+            pass
+
     try:
-        django_logout(request)
+        request.session.modified = True
     except Exception:
         pass
 
-    sep = "&" if "?" in target else "?"
-    return redirect(f"{target}{sep}{urlencode(params)}")
+    return _redirect_to_spa(params)
