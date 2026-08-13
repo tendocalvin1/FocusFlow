@@ -162,9 +162,11 @@ SOCIALACCOUNT_ADAPTER = "accounts.adapters.FocusFlowSocialAccountAdapter"
 SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 
-LOGIN_URL = "/login/"
-LOGIN_REDIRECT_URL = "/_auth/social/complete/"
+LOGIN_URL = "/api/auth/login/"
+LOGIN_REDIRECT_URL = "/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+
+SOCIAL_LOGIN_COMPLETE_URL = "/_auth/social/complete/"
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {

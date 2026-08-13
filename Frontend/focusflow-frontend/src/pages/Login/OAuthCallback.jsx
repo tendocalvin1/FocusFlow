@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { TOKEN_ACCESS_KEY, TOKEN_REFRESH_KEY } from "@/services/api";
 import { getCurrentUser } from "@/services/authService";
@@ -13,19 +13,27 @@ const ERROR_MESSAGES = {
     "We received invalid sign-in tokens. Please try again.",
   missing:
     "Sign-in response was missing credentials. Please try again.",
+  storage:
+    "Unable to store credentials (storage disabled). Please enable cookies or use email login.",
+  session_expired:
+    "Sign-in tokens expired before completing. Please try again.",
 };
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
   const { setUser, setIsAuthenticated } = useAuthUnsafe();
   const [status, setStatus] = React.useState("loading");
   const [message, setMessage] = React.useState("Completing Google sign-in...");
+  const processedRef = React.useRef(false);
 
   React.useEffect(() => {
-    let cancelled = false;
+    if (processedRef.current) return;
 
-    queueMicrotask(() => {
+    const run = async () => {
+      processedRef.current = true;
+
       const error = params.get("error");
       if (error) {
         setStatus("error");
@@ -50,34 +58,60 @@ export default function OAuthCallback() {
         localStorage.setItem(TOKEN_REFRESH_KEY, refresh);
       } catch {
         setStatus("error");
-        setMessage(ERROR_MESSAGES.invalid);
+        setMessage(ERROR_MESSAGES.storage);
         return;
       }
 
-      (async () => {
+      try {
+        const cleanQs = new URLSearchParams(location.search);
+        cleanQs.delete("access");
+        cleanQs.delete("refresh");
+        cleanQs.delete("error");
+        const cleanSearch = cleanQs.toString();
+        const newUrl = cleanSearch
+          ? `${location.pathname}?${cleanSearch}${location.hash || ""}`
+          : `${location.pathname}${location.hash || ""}`;
+        window.history.replaceState({}, "", newUrl);
+        setParams(cleanQs, { replace: true });
+      } catch {
+        // non-fatal if URL cleanup fails
+      }
+
+      try {
+        const profile = await getCurrentUser();
+        if (setUser) setUser(profile);
+        if (setIsAuthenticated) setIsAuthenticated(true);
+        setStatus("success");
+        setMessage("Sign-in complete. Redirecting...");
+        setTimeout(() => navigate("/", { replace: true }), 400);
+      } catch (err) {
+        setStatus("error");
+        setMessage(
+          err?.code === "unauthorized" || err?.status === 401
+            ? ERROR_MESSAGES.session_expired
+            : err?.message ||
+                "We couldn't load your profile. Please try logging in with email."
+        );
         try {
-          const profile = await getCurrentUser();
-          if (cancelled) return;
-          if (setUser) setUser(profile);
-          if (setIsAuthenticated) setIsAuthenticated(true);
-          setStatus("success");
-          setMessage("Sign-in complete. Redirecting...");
-          setTimeout(() => navigate("/", { replace: true }), 400);
-        } catch (err) {
-          if (cancelled) return;
-          setStatus("error");
-          setMessage(
-            err?.message ||
-              "We couldn't load your profile. Please try logging in with email."
-          );
+          localStorage.removeItem(TOKEN_ACCESS_KEY);
+          localStorage.removeItem(TOKEN_REFRESH_KEY);
+        } catch {
+          /* ignore */
         }
-      })();
+      }
+    };
+
+    queueMicrotask(() => {
+      run().catch(() => {
+        setStatus("error");
+        setMessage("Unexpected error. Please try again.");
+      });
     });
 
     return () => {
-      cancelled = true;
+      processedRef.current = true;
     };
-  }, [params, navigate, setUser, setIsAuthenticated]);
+  }, [location.pathname, location.hash, params, setParams, setUser, setIsAuthenticated, navigate, location.search]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 dark:bg-slate-950">

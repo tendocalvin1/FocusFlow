@@ -255,3 +255,100 @@ class ChangePasswordTests(APITestCase):
         self.client.force_authenticate(user=None)
         response = self.client.post(reverse("token_obtain_pair"),{"username": "tendo","password": "password123!"},format="json")
         self.assertEqual(response.status_code,status.HTTP_401_UNAUTHORIZED)
+
+
+class SocialLoginCompleteTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="sso-user",
+            email="sso@focusflow.io",
+            password="sso-user-pw-1!"
+        )
+
+    def test_social_complete_redirects_anonymous_to_error(self):
+        url = reverse("social_login_complete")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn("oauth/callback", response["Location"])
+        self.assertIn("error=unauthenticated", response["Location"])
+
+    def test_social_complete_redirects_authenticated_to_spa_with_jwt(self):
+        self.client.force_login(self.user)
+        url = reverse("social_login_complete")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        location = response["Location"]
+        self.assertIn("/oauth/callback", location)
+        self.assertIn("access=", location)
+        self.assertIn("refresh=", location)
+
+    def test_social_complete_tokens_are_valid_simplejwt(self):
+        self.client.force_login(self.user)
+        url = reverse("social_login_complete")
+        response = self.client.get(url)
+        location = response["Location"]
+        from urllib.parse import urlparse, parse_qs
+        parsed = parse_qs(urlparse(location).query)
+        access_token = parsed["access"][0]
+        response = self.client.post(
+            reverse("token_verify"),
+            {"token": access_token},
+            format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_social_complete_does_not_leak_secrets(self):
+        self.client.force_login(self.user)
+        url = reverse("social_login_complete")
+        response = self.client.get(url)
+        self.assertNotIn("GOOGLE_CLIENT", response.get("Location", ""))
+        self.assertNotIn("client_secret", str(response.serialize()).lower())
+
+
+class JWTRegressionTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username="jwt-check",
+            email="jwt-check@focusflow.io",
+            password="jwt-pw-9!"
+        )
+
+    def test_token_obtain_still_works(self):
+        response = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "jwt-check", "password": "jwt-pw-9!"},
+            format="json"
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("access", response.data)
+        self.assertIn("refresh", response.data)
+        self._access = response.data["access"]
+
+    def test_token_refresh_still_works(self):
+        obtain = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "jwt-check", "password": "jwt-pw-9!"},
+            format="json"
+        )
+        refresh = self.client.post(
+            reverse("token_refresh"),
+            {"refresh": obtain.data["refresh"]},
+            format="json"
+        )
+        self.assertEqual(refresh.status_code, status.HTTP_200_OK)
+        self.assertIn("access", refresh.data)
+
+    def test_profile_protected_without_bearer(self):
+        response = self.client.get(reverse("profile"))
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_profile_accessible_with_bearer(self):
+        obtain = self.client.post(
+            reverse("token_obtain_pair"),
+            {"username": "jwt-check", "password": "jwt-pw-9!"},
+            format="json"
+        )
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {obtain.data['access']}")
+        response = self.client.get(reverse("profile"))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["username"], "jwt-check")

@@ -99,6 +99,7 @@ Implemented authentication capabilities include:
 * User registration
 * JWT login (`/api/token/`)
 * Google OAuth / SSO (`/accounts/google/login/`)
+* GitHub OAuth / SSO (`/accounts/github/login/`) — installed, credentials optional
 * Headless SSO REST API (`/_allauth/browser/v1/auth/provider/redirect`)
 * Access tokens & Refresh tokens
 * Token verification & Token refresh
@@ -107,7 +108,181 @@ Implemented authentication capabilities include:
 * Password change & Profile access
 * Idempotent Django management command `setup_social_apps` for Site & SocialApp configuration
 
+#### JWT login flow
+
+```text
+React Login.jsx
+     │ submit email + password
+     ▼
+authService.login(email, password)
+     │
+     ├─ POST /api/token/  { username: email, password }
+     │
+     ├─ store access + refresh in localStorage (focusflow_access / focusflow_refresh)
+     │
+     └─ GET /api/auth/profile/
+            │ Authorization: Bearer <access>
+            ▼
+        AuthContext.user is hydrated
+            │
+            ▼
+        ProtectedRoute → render MainLayout + Dashboard
+```
+
+**Axios interceptor behavior** (see `src/services/api.js`):
+
+* All API requests include `Authorization: Bearer <access>` automatically
+* On 401 — if `_retry` not set, the interceptor calls `/api/token/refresh/` with the stored refresh token, stores the newly-minted pair, and retries the failed request **once**
+* If refresh fails, tokens are cleared from localStorage, a `focusflow:auth:logout` CustomEvent is dispatched, and the user is redirected to `/login?next=<original-route>`
+
+#### Google OAuth / SSO end-to-end flow
+
+```text
+Login or Register page
+      │
+      │  user clicks "Continue with Google"
+      │  (SocialAuthButtons.jsx onClick)
+      ▼
+ window.location.href =
+      $API_BASE_URL + "/accounts/google/login/"
+      │
+      │  302 by django-allauth
+      ▼
+ accounts.google.com/... (Google consent / login)
+      │
+      │  Google 302s user back to:
+      │    BACKEND/accounts/google/login/callback/
+      │  (this MUST be registered in Google Cloud Console
+      │   → OAuth Client → Authorized redirect URIs)
+      ▼
+ django-allauth callback view
+      │  validates state, exchanges code,
+      │  fetches profile, creates User +
+      │  SocialAccount row; issues session cookie
+      ▼
+ allauth adapter redirects to:
+      /_auth/social/complete/
+      (LOGIN_REDIRECT_URL for social flows,
+       set by FocusFlowAccountAdapter)
+      │
+      ▼
+ accounts.views.social_login_complete_view
+      │  1. request.user is Authenticated (via session)
+      │  2. RefreshToken.for_user(user) → access + refresh
+      │  3. Cleanup allauth temp session marker
+      │  4. 302 redirect to:
+      │        FRONTEND_URL/oauth/callback
+      │            ?access=<ACCESS_JWT>
+      │           &refresh=<REFRESH_JWT>
+      │     (or ?error=unauthenticated)
+      ▼
+ React SPA at /oauth/callback (OAuthCallback.jsx)
+      │
+      │  ┌────────────────────────────────────────┐
+      │  │ Validate ?access + ?refresh exist      │
+      │  │ Store both in localStorage             │
+      │  │ Strip tokens from URL with replaceState│
+      │  │ GET /api/auth/profile/ (Bearer access) │
+      │  │ On 401 → clear tokens, show error card │
+      │  │ On success → setUser / setIsAuthenticated
+      │  │ 400ms → navigate("/")
+      │  └────────────────────────────────────────┘
+      ▼
+ Dashboard as authenticated user
+      │
+      │ Every subsequent request uses the exact same
+      │ JWT Bearer-token path as normal email login
+      ▼
+ Goals, Tasks, Focus, Analytics all work
+```
+
+**Security note about JWT-in-query-string:** Because SimpleJWT access tokens are short-lived (5 minute default) and refresh tokens can be revoked, passing them over a single 302 Location header is an acceptable MVP tradeoff for FocusFlow. Safer future implementations could: (a) instead of redirecting with tokens in URL, render a backend page that POSTs the tokens to the SPA as a one-time `code` (the SPA then exchanges the code for JWTs via an API call, within minutes), or (b) enable `SameSite=none; Secure` session cookies so frontend and backend can share origin via a proxy.
+
 ---
+
+### Required environment variables (backend)
+
+Create `Backend/.env` (or configure environment in Render) with **at minimum**:
+
+```env
+# ===== Django =====
+SECRET_KEY=<django-secret-key>
+DEBUG=False
+ALLOWED_HOSTS=*
+# e.g. Render domain
+FRONTEND_URL=https://focus-flow-bay-zeta.vercel.app
+
+# ===== Database =====
+DATABASE_URL=postgres://user:password@host:port/dbname
+# or legacy DB_* vars:
+DB_NAME=focusflow
+DB_USER=focusflow
+DB_PASSWORD=focusflow
+DB_HOST=localhost
+DB_PORT=5432
+
+# ===== SimpleJWT =====
+# (optional overrides — defaults are sensible)
+ACCESS_TOKEN_LIFETIME_MINUTES=5
+REFRESH_TOKEN_LIFETIME_DAYS=7
+
+# ===== CORS =====
+# Frontend origins are comma-separated
+CORS_ALLOWED_ORIGINS=http://localhost:5173,https://focus-flow-bay-zeta.vercel.app
+CSRF_TRUSTED_ORIGINS=http://localhost:5173,https://focus-flow-bay-zeta.vercel.app
+
+# ===== Google OAuth =====
+# Never commit these values. Never pass them to the browser.
+GOOGLE_CLIENT_ID=<your-client-id>.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=<your-google-client-secret>
+
+# ===== GitHub OAuth (optional) =====
+GITHUB_CLIENT_ID=
+GITHUB_CLIENT_SECRET=
+```
+
+**Google Cloud Console callback URI:** Register the exact callback URL matching your backend domain:
+
+```text
+# Production
+https://focusflow-3n3u.onrender.com/accounts/google/login/callback/
+
+# Local
+http://localhost:8000/accounts/google/login/callback/
+```
+
+Both `accounts.google.com` and Django-allauth verify this URL strictly. A mismatch produces a generic `redirect_uri_mismatch` error from Google that arrives **before** FocusFlow code runs.
+
+**Idempotent setup_social_apps command** (`entrypoint.sh` runs this every startup):
+
+```text
+$ python manage.py setup_social_apps
+Default Site configured (id=1, domain=localhost)
+Google SocialApp created and associated with Site id=1.
+GitHub OAuth credentials not found in environment. Provider installed.
+```
+
+Running the command twice is safe — it uses `get_or_create(...)` and `if site not in app.sites.all(): app.sites.add(site)` so no duplicates are created.
+
+---
+
+### Frontend environment variables
+
+Create `Frontend/focusflow-frontend/.env`:
+
+```env
+# Vercel / production
+VITE_API_BASE_URL=https://focusflow-3n3u.onrender.com
+# Local development (uncomment):
+# VITE_API_BASE_URL=http://localhost:8000
+```
+
+This value is read by `src/services/api.js` → `API_BASE_URL` constant, which is used by:
+1. `api` Axios instance (all fetch operations)
+2. `SocialAuthButtons.jsx` — redirects to the backend OAuth entry point
+3. Axios interceptor for refresh-token POSTs
+
+
 
 ### 🌐 REST API
 
