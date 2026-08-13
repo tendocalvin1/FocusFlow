@@ -326,12 +326,10 @@ class SocialAppConfigurationTests(APITestCase):
             "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
             "GOOGLE_CLIENT_ID": "google-client-id",
             "GOOGLE_CLIENT_SECRET": "google-client-secret",
-            "GITHUB_CLIENT_ID": "github-client-id",
-            "GITHUB_CLIENT_SECRET": "github-client-secret",
         },
         clear=False,
     )
-    def test_setup_social_apps_creates_site_and_provider_apps(self):
+    def test_setup_social_apps_creates_site_and_google_app(self):
         self._call_setup()
 
         site = Site.objects.get(id=1)
@@ -339,15 +337,10 @@ class SocialAppConfigurationTests(APITestCase):
         self.assertEqual(site.name, "focusflow-3n3u.onrender.com")
 
         google = SocialApp.objects.get(provider="google")
-        github = SocialApp.objects.get(provider="github")
 
         self.assertEqual(google.client_id, "google-client-id")
         self.assertTrue(google.secret)
         self.assertIn(site, google.sites.all())
-
-        self.assertEqual(github.client_id, "github-client-id")
-        self.assertTrue(github.secret)
-        self.assertIn(site, github.sites.all())
 
     @override_settings(DEBUG=False)
     @patch.dict(
@@ -357,8 +350,6 @@ class SocialAppConfigurationTests(APITestCase):
             "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
             "GOOGLE_CLIENT_ID": "google-client-id",
             "GOOGLE_CLIENT_SECRET": "google-client-secret",
-            "GITHUB_CLIENT_ID": "github-client-id",
-            "GITHUB_CLIENT_SECRET": "github-client-secret",
         },
         clear=False,
     )
@@ -367,7 +358,6 @@ class SocialAppConfigurationTests(APITestCase):
         self._call_setup()
 
         self.assertEqual(SocialApp.objects.filter(provider="google").count(), 1)
-        self.assertEqual(SocialApp.objects.filter(provider="github").count(), 1)
         self.assertEqual(Site.objects.filter(id=1).count(), 1)
 
     @override_settings(DEBUG=False)
@@ -378,8 +368,6 @@ class SocialAppConfigurationTests(APITestCase):
             "SITE_DOMAIN": "focusflow-3n3u.onrender.com",
             "GOOGLE_CLIENT_ID": "",
             "GOOGLE_CLIENT_SECRET": "",
-            "GITHUB_CLIENT_ID": "github-client-id",
-            "GITHUB_CLIENT_SECRET": "github-client-secret",
         },
         clear=False,
     )
@@ -395,15 +383,13 @@ class SocialAppConfigurationTests(APITestCase):
             "SITE_DOMAIN": "localhost",
             "GOOGLE_CLIENT_ID": "",
             "GOOGLE_CLIENT_SECRET": "",
-            "GITHUB_CLIENT_ID": "",
-            "GITHUB_CLIENT_SECRET": "",
         },
         clear=False,
     )
     def test_setup_social_apps_allows_missing_credentials_in_local_debug(self):
         output = self._call_setup()
-        self.assertIn("required to configure google OAuth", output)
-        self.assertEqual(SocialApp.objects.count(), 0)
+        self.assertIn("required to configure Google OAuth", output)
+        self.assertEqual(SocialApp.objects.filter(provider="google").count(), 0)
 
     @patch.dict(
         "os.environ",
@@ -414,8 +400,6 @@ class SocialAppConfigurationTests(APITestCase):
             "FRONTEND_URL": "https://focus-flow-bay-zeta.vercel.app",
             "GOOGLE_CLIENT_ID": "google-client-id",
             "GOOGLE_CLIENT_SECRET": "google-client-secret",
-            "GITHUB_CLIENT_ID": "github-client-id",
-            "GITHUB_CLIENT_SECRET": "github-client-secret",
         },
         clear=False,
     )
@@ -443,6 +427,31 @@ class SocialAppConfigurationTests(APITestCase):
         self.assertIn("secret=configured", output)
         self.assertNotIn("google-client-secret", output)
         self.assertNotIn("postgres://user:secret@example/db", output)
+
+
+class GoogleOAuthInitiationTests(APITestCase):
+    def setUp(self):
+        site = Site.objects.get(id=1)
+        site.domain = "testserver"
+        site.name = "testserver"
+        site.save()
+        app = SocialApp.objects.create(
+            provider="google",
+            name="FocusFlow Google",
+            client_id="test-google-client-id",
+            secret="test-google-client-secret",
+        )
+        app.sites.add(site)
+
+    def test_google_login_redirects_to_google(self):
+        response = self.client.get("/accounts/google/login/")
+        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertIn("accounts.google.com", response["Location"])
+
+    def test_google_login_fails_without_social_app(self):
+        SocialApp.objects.filter(provider="google").delete()
+        response = self.client.get("/accounts/google/login/")
+        self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class JWTRegressionTests(APITestCase):

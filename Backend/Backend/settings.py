@@ -88,9 +88,8 @@ INSTALLED_APPS = [
     "allauth.socialaccount",
     "allauth.headless",
 
-    # OAuth providers
+    # OAuth provider (Google only)
     "allauth.socialaccount.providers.google",
-    "allauth.socialaccount.providers.github",
 
     # Local apps
     "productivity",
@@ -98,6 +97,11 @@ INSTALLED_APPS = [
 ]
 
 SITE_ID = 1
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -177,13 +181,6 @@ SOCIALACCOUNT_PROVIDERS = {
             "access_type": "online",
         },
         "OAUTH_PKCE_ENABLED": True,
-    },
-
-    "github": {
-        "SCOPE": [
-            "read:user",
-            "user:email",
-        ],
     },
 }
 DATABASE_URL = os.getenv("DATABASE_URL")

@@ -6,7 +6,7 @@ import os
 
 
 class Command(BaseCommand):
-    help = "Print safe OAuth configuration diagnostics without exposing secrets"
+    help = "Print safe Google OAuth configuration diagnostics without exposing secrets"
 
     def handle(self, *args, **options):
         self.stdout.write("Environment:")
@@ -15,10 +15,9 @@ class Command(BaseCommand):
             "SECRET_KEY",
             "DEBUG",
             "FRONTEND_URL",
+            "SITE_DOMAIN",
             "GOOGLE_CLIENT_ID",
             "GOOGLE_CLIENT_SECRET",
-            "GITHUB_CLIENT_ID",
-            "GITHUB_CLIENT_SECRET",
         ):
             self.stdout.write(f"  {name} = {'configured' if os.getenv(name) else 'missing'}")
 
@@ -29,8 +28,11 @@ class Command(BaseCommand):
             self.stdout.write(f"  id={site.id} domain={site.domain} name={site.name}")
 
         self.stdout.write("")
-        self.stdout.write("SocialApps:")
-        for app in SocialApp.objects.order_by("provider", "id"):
+        self.stdout.write("Google SocialApp:")
+        google_apps = SocialApp.objects.filter(provider="google").order_by("id")
+        if not google_apps.exists():
+            self.stdout.write("  missing")
+        for app in google_apps:
             sites = ", ".join(site.domain for site in app.sites.order_by("id")) or "none"
             self.stdout.write(
                 "  "
