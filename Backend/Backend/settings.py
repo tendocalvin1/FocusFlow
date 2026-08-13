@@ -14,8 +14,6 @@ from pathlib import Path
 import os
 
 from dotenv import load_dotenv
-print("DB_HOST =", os.getenv("DB_HOST"))
-print("DATABASE_URL =", os.getenv("DATABASE_URL"))
 import dj_database_url
 
 
@@ -25,11 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # load_dotenv(BASE_DIR / ".env")
 env_path = BASE_DIR / ".env"
 
-print("BASE_DIR =", BASE_DIR)
-print("ENV PATH =", env_path)
-print("ENV EXISTS =", env_path.exists())
-
 load_dotenv(env_path)
+
+
+def _csv_env(name, default=""):
+    return [value.strip() for value in os.getenv(name, default).split(",") if value.strip()]
 
 
 
@@ -39,10 +37,10 @@ load_dotenv(env_path)
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("SECRET_KEY")
 
-# # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = os.getenv("DEBUG", "False") == "True"
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS","127.0.0.1,localhost").split(",")
+ALLOWED_HOSTS = _csv_env("ALLOWED_HOSTS", "127.0.0.1,localhost")
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
@@ -163,10 +161,10 @@ SOCIALACCOUNT_EMAIL_REQUIRED = True
 SOCIALACCOUNT_AUTO_SIGNUP = True
 
 LOGIN_URL = "/api/auth/login/"
-LOGIN_REDIRECT_URL = "/"
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
-
 SOCIAL_LOGIN_COMPLETE_URL = "/_auth/social/complete/"
+LOGIN_REDIRECT_URL = SOCIAL_LOGIN_COMPLETE_URL
+ACCOUNT_LOGOUT_REDIRECT_URL = os.getenv("FRONTEND_URL", "/")
+LOGOUT_REDIRECT_URL = ACCOUNT_LOGOUT_REDIRECT_URL
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
@@ -191,11 +189,12 @@ SOCIALACCOUNT_PROVIDERS = {
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
+    database_is_sqlite = DATABASE_URL.startswith("sqlite:")
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
             conn_max_age=600,
-            ssl_require=True,
+            ssl_require=not database_is_sqlite,
         )
     }
 else:
@@ -236,10 +235,15 @@ CORS_ALLOW_METHODS = [
     "PUT",
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "https://focus-flow-bay-zeta.vercel.app"
-]
+CORS_ALLOWED_ORIGINS = _csv_env(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,https://focus-flow-bay-zeta.vercel.app",
+)
+
+CSRF_TRUSTED_ORIGINS = _csv_env(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:5173,https://focus-flow-bay-zeta.vercel.app",
+)
 
 
 FRONTEND_URL = os.getenv(

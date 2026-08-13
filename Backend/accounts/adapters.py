@@ -8,14 +8,14 @@ SOCIAL_COMPLETE = getattr(settings, "SOCIAL_LOGIN_COMPLETE_URL", "/_auth/social/
 
 
 class FocusFlowAccountAdapter(DefaultAccountAdapter):
-    def get_login_redirect_url(self, request, redirect_url=None):
+    def get_login_redirect_url(self, request):
         is_social = bool(
             request.session.get("socialaccount_sociallogin")
             or getattr(request, "_social_login_flow", False)
         )
         if is_social:
             return SOCIAL_COMPLETE
-        return redirect_url or super().get_login_redirect_url(request, redirect_url)
+        return super().get_login_redirect_url(request)
 
     def get_logout_redirect_url(self, request):
         frontend = getattr(settings, "FRONTEND_URL", "/")
