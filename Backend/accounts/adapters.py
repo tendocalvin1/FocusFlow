@@ -1,3 +1,4 @@
+# This file helps in the authentication process as well
 from django.conf import settings
 
 from allauth.account.adapter import DefaultAccountAdapter
