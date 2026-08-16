@@ -1,3 +1,4 @@
+# This file helps with creating the databases as well
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
