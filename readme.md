@@ -1287,6 +1287,6 @@ AI Evaluation
 Production AI Hardening
 ```
 
-The current milestone is the completion of the **core productivity platform, production deployment foundation, and first AI productivity integration**.
+The current milestone is the completion of the **core productivity platform, production deployment foundation, and AI productivity integration**.
 
-The next milestone is to make the AI layer more intelligent, measurable, and production-ready while preserving the reliability, security, and user ownership guarantees of the underlying application.
+
