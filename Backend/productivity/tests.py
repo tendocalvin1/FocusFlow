@@ -1,3 +1,4 @@
+import json
 from datetime import date, timedelta
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -8,6 +9,7 @@ from rest_framework.authtoken.models import Token
 from  .models import Goal, Task, FocusSession, Streak
 from .serialisers import GoalSerializer, TaskSerializer, FocusSessionSerializer, StreakSerializer
 from rest_framework.authentication import SessionAuthentication, BaseAuthentication
+from unittest.mock import patch
 
 
 # Create your tests here.
@@ -73,6 +75,71 @@ class GoalAPITestCase(APITestCase):
         response = self.client.post(reverse('goals-view'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('title', response.data)
+
+
+class ProductivityPlanAPITestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="planner", password="planner-password")
+        self.other_user = User.objects.create_user(username="other-planner", password="other-password")
+        self.client.force_authenticate(user=self.user)
+        self.goal = Goal.objects.create(
+            user=self.user,
+            title="Ship FocusFlow AI",
+            priority="HIGH",
+            status="IN_PROGRESS",
+            progress=40,
+            target_date=date.today() + timedelta(days=3),
+        )
+        self.task = Task.objects.create(goal=self.goal, title="Write planner tests", priority="HIGH")
+        Goal.objects.create(user=self.other_user, title="Private goal", target_date=date.today() + timedelta(days=2))
+        Streak.objects.create(user=self.user, current_streak=4, longest_streak=9)
+
+    def test_plan_requires_authentication(self):
+        self.client.force_authenticate(user=None)
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key", "OPENAI_MODEL": "test-model"})
+    @patch("productivity.ai_services.OpenAI")
+    def test_plan_returns_structured_user_scoped_response(self, openai_class):
+        openai_class.return_value.responses.create.return_value.output_text = json.dumps({
+            "summary": "Focus on shipping the planner.",
+            "priorities": [{"goal_id": self.goal.id, "reason": "Near deadline.", "priority": "HIGH"}],
+            "plan": [{"day": "Monday", "tasks": [{"task_id": self.task.id, "title": self.task.title, "estimated_minutes": 60, "reason": "Unblock delivery."}]}],
+            "risks": [],
+            "recommendations": ["Keep one deep-work block protected."],
+        })
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["priorities"][0]["goal_id"], self.goal.id)
+        request_input = openai_class.return_value.responses.create.call_args.kwargs["input"]
+        self.assertIn("Ship FocusFlow AI", request_input)
+        self.assertNotIn("Private goal", request_input)
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_missing_ai_configuration_is_safe(self):
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
+
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
+    @patch("productivity.ai_services.OpenAI")
+    def test_invalid_ai_response_is_safe(self, openai_class):
+        openai_class.return_value.responses.create.return_value.output_text = "{}"
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+
+    @patch.dict("os.environ", {"OPENAI_API_KEY": "test-key"})
+    @patch("productivity.ai_services.OpenAI")
+    def test_provider_failure_is_safe(self, openai_class):
+        openai_class.return_value.responses.create.side_effect = RuntimeError("provider unavailable")
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+
+    def test_empty_productivity_data_is_safe(self):
+        Goal.objects.filter(user=self.user).delete()
+        response = self.client.post(reverse("productivity-plan-view"), {}, format="json")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.data["empty"])
         
         
 

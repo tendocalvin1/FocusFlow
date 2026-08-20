@@ -15,7 +15,10 @@ urlpatterns = [
     path("focus-sessions/<int:pk>/",view=views.focus_session_detail_view,name="focus-session-detail-view"),
 
     # Streaks
-    path("streaks/",view=views.streaks_view,name="streaks-view")
+    path("streaks/",view=views.streaks_view,name="streaks-view"),
+
+    # AI planning
+    path("ai/productivity-plan/", view=views.productivity_plan_view, name="productivity-plan-view")
 
 ]
 
