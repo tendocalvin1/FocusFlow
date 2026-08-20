@@ -8,6 +8,12 @@ from .models import Goal,Task,FocusSession,Streak
 from datetime import  timedelta
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from .ai_services import (
+    AIConfigurationError,
+    AIProviderError,
+    AIResponseValidationError,
+    generate_productivity_plan,
+)
 
 # Create your views here.
 
@@ -233,6 +239,21 @@ def streaks_view(request):
     streak.save()
     serializer = StreakSerializer(streak)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema(summary="Generate-authenticated-user-productivity-plan")
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def productivity_plan_view(request):
+    try:
+        plan = generate_productivity_plan(request.user)
+    except AIConfigurationError:
+        return Response({"detail": "AI planning is not configured."}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+    except (AIProviderError, AIResponseValidationError):
+        return Response({"detail": "We couldn't generate your plan right now."}, status=status.HTTP_502_BAD_GATEWAY)
+    except Exception:
+        return Response({"detail": "We couldn't generate your plan right now."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return Response(plan, status=status.HTTP_200_OK)
 
 
     
